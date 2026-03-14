@@ -5,8 +5,10 @@
     "moduleResolution": "Node",
     "outDir": "dist/extension",
     "rootDir": "src",
+    "incremental": true,
     "types": ["node", "vscode"],
-    "noEmit": false
+    "noEmit": false,
+    "tsBuildInfoFile": "dist/extension/.tsbuildinfo"
   },
   "include": ["src/extension/**/*.ts", "src/shared/**/*.ts"]
 }

@@ -39,7 +39,9 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0)
-  }
+  ;
+    --highlight: oklch(0.852 0.199 91.936);
+    --brand: oklch(0.623 0.214 259.815)}
   .dark {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
@@ -72,17 +74,265 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0)
-  }
+  ;
+    --highlight: oklch(0.852 0.199 91.936);
+    --brand: oklch(0.707 0.165 254.624)}
   .theme {
     --font-sans: 'Geist Variable', sans-serif
   }
+
+  :root {
+    --background: var(--vscode-editor-background, oklch(1 0 0));
+    --foreground: var(--vscode-editor-foreground, oklch(0.145 0 0));
+    --card: var(--vscode-editorWidget-background, var(--background));
+    --card-foreground: var(--vscode-editorWidget-foreground, var(--foreground));
+    --popover: var(--vscode-editorWidget-background, var(--background));
+    --popover-foreground: var(--vscode-editorWidget-foreground, var(--foreground));
+    --primary: var(--vscode-button-background, oklch(0.205 0 0));
+    --primary-foreground: var(--vscode-button-foreground, oklch(0.985 0 0));
+    --secondary: var(--vscode-button-secondaryBackground, var(--card));
+    --secondary-foreground: var(--vscode-button-secondaryForeground, var(--foreground));
+    --muted: var(--vscode-editorWidget-background, var(--card));
+    --muted-foreground: var(--vscode-descriptionForeground, var(--foreground));
+    --accent: var(--vscode-list-hoverBackground, var(--card));
+    --accent-foreground: var(--vscode-list-hoverForeground, var(--foreground));
+    --destructive: var(--vscode-errorForeground, oklch(0.58 0.22 27));
+    --border: var(--vscode-panel-border, var(--vscode-editorWidget-border, oklch(0.922 0 0)));
+    --input: var(--vscode-input-background, var(--background));
+    --ring: var(--vscode-focusBorder, oklch(0.708 0 0));
+    --highlight: var(--vscode-editor-selectionBackground, oklch(0.852 0.199 91.936));
+    --brand: var(--vscode-textLink-foreground, oklch(0.623 0.214 259.815));
+  }
+
+  body.vscode-light,
+  body.vscode-dark,
+  body.vscode-high-contrast,
+  body.vscode-high-contrast-light {
+    --background: var(--vscode-editor-background, oklch(1 0 0));
+    --foreground: var(--vscode-editor-foreground, oklch(0.145 0 0));
+    --card: var(--vscode-editorWidget-background, var(--background));
+    --card-foreground: var(--vscode-editorWidget-foreground, var(--foreground));
+    --popover: var(--vscode-editorWidget-background, var(--background));
+    --popover-foreground: var(--vscode-editorWidget-foreground, var(--foreground));
+    --primary: var(--vscode-button-background, oklch(0.205 0 0));
+    --primary-foreground: var(--vscode-button-foreground, oklch(0.985 0 0));
+    --secondary: var(--vscode-button-secondaryBackground, var(--card));
+    --secondary-foreground: var(--vscode-button-secondaryForeground, var(--foreground));
+    --muted: var(--vscode-editorWidget-background, var(--card));
+    --muted-foreground: var(--vscode-descriptionForeground, var(--foreground));
+    --accent: var(--vscode-list-hoverBackground, var(--card));
+    --accent-foreground: var(--vscode-list-hoverForeground, var(--foreground));
+    --destructive: var(--vscode-errorForeground, oklch(0.58 0.22 27));
+    --border: var(--vscode-panel-border, var(--vscode-editorWidget-border, oklch(0.922 0 0)));
+    --input: var(--vscode-input-background, var(--background));
+    --ring: var(--vscode-focusBorder, oklch(0.708 0 0));
+    --highlight: var(--vscode-editor-selectionBackground, oklch(0.852 0.199 91.936));
+    --brand: var(--vscode-textLink-foreground, oklch(0.623 0.214 259.815));
+  }
+
+  body.vscode-dark,
+  body.vscode-high-contrast {
+    color-scheme: dark;
+  }
+
+  body.vscode-light,
+  body.vscode-high-contrast-light {
+    color-scheme: light;
+  }
+
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer components {
+  [data-slot="block-selection"] {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background-color: color-mix(in oklab, var(--brand) 13%, transparent);
+    border-radius: 0.375rem;
+    transition: opacity 120ms ease;
+  }
+
+  @supports not (color: color-mix(in oklab, red, transparent)) {
+    [data-slot="block-selection"] {
+      background-color: rgb(77 120 255 / 0.13);
+    }
+  }
+
+  .slate-dropLine {
+    pointer-events: none;
+    z-index: 40;
+    background-color: color-mix(in oklab, var(--brand) 50%, transparent);
+    transition: opacity 120ms ease;
+  }
+
+  @supports not (color: color-mix(in oklab, red, transparent)) {
+    .slate-dropLine {
+      background-color: rgb(77 120 255 / 0.5);
+    }
+  }
+
+  .slate-drag-preview {
+    pointer-events: none;
+    z-index: 60;
+  }
+
+  [data-slot='inline-combobox-item']:hover,
+  [data-slot='inline-combobox-item'][data-active-item='true'] {
+    background-color: var(--vscode-list-hoverBackground, var(--accent));
+    color: var(--vscode-list-hoverForeground, var(--foreground));
+  }
+
+  @supports not (color: color-mix(in oklab, red, transparent)) {
+    [data-slot='inline-combobox-item']:hover,
+    [data-slot='inline-combobox-item'][data-active-item='true'] {
+      background-color: var(--accent);
+      color: var(--accent-foreground);
+    }
+  }
+
+  .maden-code-block-surface {
+    background-color: color-mix(
+      in oklab,
+      var(--vscode-editor-background, var(--background)) 95%,
+      var(--vscode-editor-foreground, var(--foreground)) 5%
+    );
+    border: 1px solid
+      color-mix(
+        in oklab,
+        var(--vscode-editor-foreground, var(--foreground)) 12%,
+        transparent
+      );
+  }
+
+  @supports not (color: color-mix(in oklab, red, transparent)) {
+    .maden-code-block-surface {
+      background-color: var(--muted);
+      border: 1px solid var(--border);
+    }
+  }
+
+  .maden-fixed-toolbar-buttons {
+    scrollbar-width: none;
+  }
+
+  .maden-fixed-toolbar-buttons::-webkit-scrollbar {
+    height: 0 !important;
+  }
+
+  [data-slot="dropdown-menu-item"][data-highlighted],
+  [data-slot="dropdown-menu-radio-item"][data-highlighted],
+  [data-slot="dropdown-menu-checkbox-item"][data-highlighted],
+  [data-slot="dropdown-menu-sub-trigger"][data-highlighted],
+  [data-slot="context-menu-item"][data-highlighted],
+  [data-slot="context-menu-radio-item"][data-highlighted],
+  [data-slot="context-menu-checkbox-item"][data-highlighted],
+  [data-slot="context-menu-sub-trigger"][data-highlighted] {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  [data-slot="dropdown-menu-item"][data-highlighted] svg,
+  [data-slot="dropdown-menu-radio-item"][data-highlighted] svg,
+  [data-slot="dropdown-menu-checkbox-item"][data-highlighted] svg,
+  [data-slot="dropdown-menu-sub-trigger"][data-highlighted] svg,
+  [data-slot="context-menu-item"][data-highlighted] svg,
+  [data-slot="context-menu-radio-item"][data-highlighted] svg,
+  [data-slot="context-menu-checkbox-item"][data-highlighted] svg,
+  [data-slot="context-menu-sub-trigger"][data-highlighted] svg {
+    color: var(--accent-foreground);
+  }
+
+  [data-slot="dropdown-menu-item"][data-highlighted],
+  [data-slot="dropdown-menu-radio-item"][data-highlighted],
+  [data-slot="dropdown-menu-checkbox-item"][data-highlighted],
+  [data-slot="dropdown-menu-sub-trigger"][data-highlighted],
+  [data-slot="context-menu-item"][data-highlighted],
+  [data-slot="context-menu-radio-item"][data-highlighted],
+  [data-slot="context-menu-checkbox-item"][data-highlighted],
+  [data-slot="context-menu-sub-trigger"][data-highlighted] {
+    border-color: transparent !important;
+    border-width: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  [data-slot="dropdown-menu-item"][data-variant="destructive"][data-highlighted],
+  [data-slot="context-menu-item"][data-variant="destructive"][data-highlighted] {
+    background-color: color-mix(in oklab, var(--destructive) 10%, transparent);
+    color: var(--destructive);
+  }
+
+  [data-maden-topbar='hidden'] .maden-fixed-toolbar-buttons {
+    visibility: hidden;
+    pointer-events: none;
+    width: 0;
+    opacity: 0;
+  }
+
+  [data-maden-topbar='hidden'] .maden-fixed-toolbar {
+    background: transparent !important;
+    border-bottom-color: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+
+  [data-maden-badge-image='true'] {
+    display: inline-block !important;
+    margin: 0 0.25rem 0 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    vertical-align: middle !important;
+  }
+
+  [data-maden-badge-image='true'] img {
+    display: inline-block !important;
+    max-width: none !important;
+    vertical-align: middle !important;
+  }
+
+  @keyframes aiReveal {
+    0% {
+      background-color: color-mix(in srgb, var(--brand) 20%, transparent);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  .animate-ai-reveal {
+    animation: aiReveal 1.5s ease-out forwards;
+  }
+
+  [data-maden-font='default'] [data-slate-editor] {
+    font-family: var(--font-sans) !important;
+  }
+
+  [data-maden-font='serif'] [data-slate-editor] {
+    font-family: Georgia, 'Times New Roman', serif !important;
+  }
+
+  [data-maden-font='mono'] [data-slate-editor] {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+      'Courier New', monospace !important;
+  }
+
+  .maden-fixed-toolbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
   }
 }

@@ -1,3 +1,6 @@
+[features]
+multi_agent = true
+
 [mcp_servers.plate]
 command = "npx"
 args = ["shadcn@latest", "mcp"]

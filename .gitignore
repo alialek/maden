@@ -1,0 +1,6 @@
+dist/
+coverage/
+.vitest/
+*.log
+node_modules
+*.vsixmaden-*.vsix
