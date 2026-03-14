@@ -4,9 +4,13 @@
   "description": "Notion-like Markdown editor for VS Code",
   "version": "0.0.1",
   "private": true,
-  "publisher": "Alek",
+  "publisher": "alialek",
   "icon": "icon.png",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alialek/maden.git"
+  },
   "engines": {
     "vscode": "^1.95.0"
   },
