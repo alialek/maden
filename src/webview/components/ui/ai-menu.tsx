@@ -419,8 +419,6 @@ export function AIMenu() {
 }
 
 type EditorChatState =
-  | 'cursorCommand'
-  | 'cursorSuggestion'
   | 'selectionCommand'
   | 'selectionSuggestion';
 
@@ -748,13 +746,19 @@ const menuStateItems: Record<
     heading?: string;
   }[]
 > = {
-  cursorCommand: [],
-  cursorSuggestion: [
+  selectionCommand: [
     {
-      items: [aiChatItems.accept, aiChatItems.discard, aiChatItems.tryAgain],
+      items: [
+        aiChatItems.improveWriting,
+        aiChatItems.comment,
+        aiChatItems.emojify,
+        aiChatItems.makeLonger,
+        aiChatItems.makeShorter,
+        aiChatItems.fixSpelling,
+        aiChatItems.simplifyLanguage,
+      ],
     },
   ],
-  selectionCommand: [],
   selectionSuggestion: [
     {
       items: [
@@ -941,15 +945,22 @@ export const AIMenuItems = ({
   const aiEditor = usePluginOption(AIChatPlugin, 'aiEditor')!;
   const isSelecting = useIsSelecting();
 
-  const menuState = React.useMemo(() => {
-    if (messages && messages.length > 0) {
-      return isSelecting ? 'selectionSuggestion' : 'cursorSuggestion';
+  const menuState = React.useMemo<EditorChatState | null>(() => {
+    if (!isSelecting) {
+      return null;
     }
 
-    return isSelecting ? 'selectionCommand' : 'cursorCommand';
+    if (messages && messages.length > 0) {
+      return 'selectionSuggestion';
+    }
+
+    return 'selectionCommand';
   }, [isSelecting, messages]);
 
   const menuGroups = React.useMemo(() => {
+    if (!menuState) {
+      return [];
+    }
     const items = menuStateItems[menuState];
 
     return items;

@@ -8,8 +8,6 @@ import {
   enforceTitleHeading,
   getFileNameWithoutExtension,
 } from './markdownUtils';
-import { ENABLE_ADD_TO_CHAT } from '../shared/feature-flags';
-import { addToCursorChat } from './services/command-bridge';
 import { AiRuntimeService } from './services/ai-runtime';
 import { createDocumentSession, createStateMessage } from './services/document-session';
 import { getWebviewHtml } from './services/webview-html';
@@ -533,17 +531,6 @@ export class MadenMarkdownEditorProvider
             runtime.pendingMarkdownFromWebview = normalized;
             this.documentText.set(key, normalized);
             scheduleWrite();
-            return;
-          }
-
-          if (message.type === 'addSelectedBlocksToChat') {
-            if (!ENABLE_ADD_TO_CHAT) {
-              return;
-            }
-            await addToCursorChat(
-              { documentUri: document.uri, log },
-              message.taskDescription
-            );
             return;
           }
 

@@ -90,10 +90,6 @@ export type WebviewToHostMessage =
     markdown: string;
   }
   | {
-    type: 'addSelectedBlocksToChat';
-    taskDescription: string;
-  }
-  | {
     type: 'saveExportFile';
     base64: string;
     mimeType: string;
