@@ -16,7 +16,9 @@ export const BlockSelectionKit = [
           element.type
         ),
       onKeyDownSelecting: (editor, e) => {
-        if (ENABLE_AI_FEATURES && isHotkey('mod+j')(e)) {
+        const aiEnabled = ENABLE_AI_FEATURES && window.__MADEN_AI_ENABLED__ === true;
+
+        if (aiEnabled && isHotkey('mod+j')(e)) {
           editor.getApi(AIChatPlugin).aiChat.show();
         }
       },

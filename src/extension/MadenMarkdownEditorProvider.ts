@@ -10,6 +10,7 @@ import {
 } from './markdownUtils';
 import { ENABLE_ADD_TO_CHAT } from '../shared/feature-flags';
 import { addToCursorChat } from './services/command-bridge';
+import { AiRuntimeService } from './services/ai-runtime';
 import { createDocumentSession, createStateMessage } from './services/document-session';
 import { getWebviewHtml } from './services/webview-html';
 
@@ -21,6 +22,7 @@ export class MadenMarkdownEditorProvider
   implements vscode.CustomEditorProvider<MarkdownCustomDocument> {
   public static readonly viewType = 'maden.plateMarkdownEditor';
   private readonly outputChannel: vscode.OutputChannel;
+  private readonly aiRuntime: AiRuntimeService;
   private readonly onDidChangeCustomDocumentEmitter =
     new vscode.EventEmitter<vscode.CustomDocumentContentChangeEvent<MarkdownCustomDocument>>();
   public readonly onDidChangeCustomDocument = this.onDidChangeCustomDocumentEmitter.event;
@@ -28,6 +30,14 @@ export class MadenMarkdownEditorProvider
   private readonly documentText = new Map<string, string>();
   private readonly documentFilePath = new Map<string, string>();
   private readonly panelsByDocument = new Map<string, Set<vscode.WebviewPanel>>();
+  private readonly runtimeByDocument = new Map<
+    string,
+    {
+      applyingHostWrite: number;
+      pendingMarkdownFromWebview?: string;
+      writeTimer?: NodeJS.Timeout;
+    }
+  >();
 
   public static register(context: vscode.ExtensionContext): vscode.Disposable {
     const provider = new MadenMarkdownEditorProvider(context);
@@ -46,7 +56,206 @@ export class MadenMarkdownEditorProvider
 
   private constructor(private readonly context: vscode.ExtensionContext) {
     this.outputChannel = vscode.window.createOutputChannel('Maden');
-    context.subscriptions.push(this.outputChannel, this.onDidChangeCustomDocumentEmitter);
+    this.aiRuntime = new AiRuntimeService(context);
+    context.subscriptions.push(this.outputChannel, this.aiRuntime, this.onDidChangeCustomDocumentEmitter);
+  }
+
+  private getRuntimeState(key: string) {
+    const runtime = this.runtimeByDocument.get(key) ?? {
+      applyingHostWrite: 0,
+    };
+    this.runtimeByDocument.set(key, runtime);
+    return runtime;
+  }
+
+  private clearRuntimeTimer(key: string) {
+    const runtime = this.runtimeByDocument.get(key);
+    if (!runtime?.writeTimer) {
+      return;
+    }
+    clearTimeout(runtime.writeTimer);
+    runtime.writeTimer = undefined;
+  }
+
+  private summarizeAiRequest(body: string): string {
+    try {
+      const parsed = JSON.parse(body) as {
+        messages?: unknown;
+        model?: unknown;
+        provider?: unknown;
+        selectedContext?: unknown;
+      };
+
+      const messages = Array.isArray(parsed.messages) ? parsed.messages : [];
+      const lastUserMessage = [...messages]
+        .reverse()
+        .find((message) => {
+          if (!message || typeof message !== 'object') {
+            return false;
+          }
+          const role = (message as { role?: unknown }).role;
+          return role === 'user';
+        }) as
+        | {
+          content?: unknown;
+          parts?: unknown;
+        }
+        | undefined;
+
+      const readText = (value: unknown): string => {
+        if (typeof value === 'string') {
+          return value;
+        }
+        if (!Array.isArray(value)) {
+          return '';
+        }
+        return value
+          .map((part) => {
+            if (typeof part === 'string') {
+              return part;
+            }
+            if (!part || typeof part !== 'object') {
+              return '';
+            }
+            const text = (part as { text?: unknown; content?: unknown }).text;
+            if (typeof text === 'string') {
+              return text;
+            }
+            const content = (part as { text?: unknown; content?: unknown }).content;
+            return typeof content === 'string' ? content : '';
+          })
+          .filter(Boolean)
+          .join('\n');
+      };
+
+      const userPreview = readText(lastUserMessage?.content ?? lastUserMessage?.parts)
+        .replace(/\s+/g, ' ')
+        .slice(0, 180);
+
+      const provider =
+        typeof parsed.provider === 'string' ? parsed.provider : 'default';
+      const model = typeof parsed.model === 'string' ? parsed.model : 'default';
+      const selectedContextLength =
+        typeof parsed.selectedContext === 'string' ? parsed.selectedContext.length : 0;
+
+      return `provider=${provider} model=${model} messages=${messages.length} selectedContextLen=${selectedContextLength} userPreview="${userPreview}"`;
+    } catch {
+      return `invalid-json bodyLen=${body.length}`;
+    }
+  }
+
+  private extractLatestUserContent(body: string): string {
+    try {
+      const parsed = JSON.parse(body) as {
+        messages?: unknown;
+      };
+      const messages = Array.isArray(parsed.messages) ? parsed.messages : [];
+      const lastUserMessage = [...messages]
+        .reverse()
+        .find((message) => {
+          if (!message || typeof message !== 'object') {
+            return false;
+          }
+          const role = (message as { role?: unknown }).role;
+          return role === 'user';
+        }) as
+        | {
+          content?: unknown;
+          parts?: unknown;
+        }
+        | undefined;
+
+      const readText = (value: unknown): string => {
+        if (typeof value === 'string') {
+          return value;
+        }
+        if (!Array.isArray(value)) {
+          return '';
+        }
+        return value
+          .map((part) => {
+            if (typeof part === 'string') {
+              return part;
+            }
+            if (!part || typeof part !== 'object') {
+              return '';
+            }
+            const text = (part as { text?: unknown; content?: unknown }).text;
+            if (typeof text === 'string') {
+              return text;
+            }
+            const content = (part as { text?: unknown; content?: unknown }).content;
+            return typeof content === 'string' ? content : '';
+          })
+          .filter(Boolean)
+          .join('\n');
+      };
+
+      return readText(lastUserMessage?.content ?? lastUserMessage?.parts).trim();
+    } catch {
+      return '';
+    }
+  }
+
+  private formatAiRequestBody(body: string): string {
+    try {
+      const parsed = JSON.parse(body);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return body;
+    }
+  }
+
+  private extractTextDeltaFromSseChunk(chunk: string): string {
+    const normalized = chunk.replace(/\r\n/g, '\n');
+    const lines = normalized.split('\n');
+    let text = '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) {
+        continue;
+      }
+
+      const payload = line.slice('data: '.length).trim();
+      if (!payload || payload === '[DONE]') {
+        continue;
+      }
+
+      try {
+        const parsed = JSON.parse(payload) as { type?: unknown; delta?: unknown };
+        if (parsed.type === 'text-delta' && typeof parsed.delta === 'string') {
+          text += parsed.delta;
+        }
+      } catch {
+        // Ignore non-JSON lines.
+      }
+    }
+
+    return text;
+  }
+
+  private async flushPendingMarkdownForDocument(
+    documentUri: vscode.Uri,
+    key: string,
+    filePath: string
+  ): Promise<void> {
+    const runtime = this.getRuntimeState(key);
+    const pending = runtime.pendingMarkdownFromWebview;
+    runtime.pendingMarkdownFromWebview = undefined;
+    this.clearRuntimeTimer(key);
+
+    if (pending === undefined) {
+      return;
+    }
+
+    const normalizedOutput = enforceTitleHeading(pending.replace(/\r\n/g, '\n'), filePath);
+    this.documentText.set(key, normalizedOutput);
+    runtime.applyingHostWrite += 1;
+    try {
+      await this.writeDocumentToDisk(documentUri, normalizedOutput);
+    } finally {
+      runtime.applyingHostWrite = Math.max(0, runtime.applyingHostWrite - 1);
+    }
   }
 
   public async openCustomDocument(
@@ -76,6 +285,8 @@ export class MadenMarkdownEditorProvider
         }
         this.documentText.delete(key);
         this.documentFilePath.delete(key);
+        this.clearRuntimeTimer(key);
+        this.runtimeByDocument.delete(key);
       },
     };
   }
@@ -113,30 +324,25 @@ export class MadenMarkdownEditorProvider
       });
 
       const key = document.uri.toString();
+      const runtime = this.getRuntimeState(key);
       const panels = this.panelsByDocument.get(key) ?? new Set<vscode.WebviewPanel>();
       panels.add(webviewPanel);
       this.panelsByDocument.set(key, panels);
 
       let isReady = false;
       let pendingMessage: HostToWebviewMessage | undefined;
-      let pendingMarkdownFromWebview: string | undefined;
-      let writeTimer: NodeJS.Timeout | undefined;
-      let applyingHostWrite = 0;
       let pendingInitialExternalMarkdown: string | undefined;
+      const aiRequestIds = new Set<string>();
+      const aiResponseRawByRequestId = new Map<string, string>();
+      const aiResponseTextByRequestId = new Map<string, string>();
       const startupDiffCheckTimers: NodeJS.Timeout[] = [];
+      let currentAiEnabled = (await this.aiRuntime.loadSettingsPublic()).enabled;
 
       const clearTimer = () => {
-        if (!writeTimer) {
-          return;
-        }
-        clearTimeout(writeTimer);
-        writeTimer = undefined;
+        this.clearRuntimeTimer(key);
       };
 
-      const getAiEnabled = (): boolean =>
-        vscode.workspace
-          .getConfiguration('maden', document.uri)
-          .get<boolean>('ai.enabled', false);
+      const getAiEnabled = (): boolean => currentAiEnabled;
       const getWorkspacePaths = (): string[] =>
         (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath);
 
@@ -202,8 +408,8 @@ export class MadenMarkdownEditorProvider
       };
 
       const flushPendingWrite = async () => {
-        const next = pendingMarkdownFromWebview;
-        pendingMarkdownFromWebview = undefined;
+        const next = runtime.pendingMarkdownFromWebview;
+        runtime.pendingMarkdownFromWebview = undefined;
 
         if (next === undefined || isReadOnly()) {
           return;
@@ -211,18 +417,12 @@ export class MadenMarkdownEditorProvider
 
         const normalizedInput = next.replace(/\r\n/g, '\n');
         const normalizedOutput = enforceTitleHeading(normalizedInput, currentFilePath());
-        const previous = this.documentText.get(key) ?? '';
-
-        if (normalizedOutput === previous) {
-          return;
-        }
-
         this.documentText.set(key, normalizedOutput);
-        applyingHostWrite += 1;
+        runtime.applyingHostWrite += 1;
         try {
           await this.writeDocumentToDisk(document.uri, normalizedOutput);
         } finally {
-          applyingHostWrite = Math.max(0, applyingHostWrite - 1);
+          runtime.applyingHostWrite = Math.max(0, runtime.applyingHostWrite - 1);
         }
 
         if (normalizedInput !== normalizedOutput) {
@@ -234,7 +434,7 @@ export class MadenMarkdownEditorProvider
 
       const scheduleWrite = () => {
         clearTimer();
-        writeTimer = setTimeout(() => {
+        runtime.writeTimer = setTimeout(() => {
           void flushPendingWrite();
         }, getDebounceMs());
       };
@@ -326,7 +526,12 @@ export class MadenMarkdownEditorProvider
           }
 
           if (message.type === 'documentChanged') {
-            pendingMarkdownFromWebview = message.markdown;
+            const normalized = enforceTitleHeading(
+              message.markdown.replace(/\r\n/g, '\n'),
+              currentFilePath()
+            );
+            runtime.pendingMarkdownFromWebview = normalized;
+            this.documentText.set(key, normalized);
             scheduleWrite();
             return;
           }
@@ -360,6 +565,107 @@ export class MadenMarkdownEditorProvider
             return;
           }
 
+          if (message.type === 'aiSettingsLoad') {
+            const settings = await this.aiRuntime.loadSettingsPublic();
+            void webviewPanel.webview.postMessage({
+              type: 'aiSettingsState',
+              settings,
+            });
+            return;
+          }
+
+          if (message.type === 'aiSettingsSave') {
+            const settings = await this.aiRuntime.saveSettings(message.settings);
+            currentAiEnabled = settings.enabled;
+            void webviewPanel.webview.postMessage({
+              type: 'aiSettingsState',
+              settings,
+            });
+            this.postAiEnabledToAllPanels(settings.enabled);
+            return;
+          }
+
+          if (message.type === 'aiRequestCancel') {
+            log(`AI request cancelled: id=${message.requestId}`);
+            this.aiRuntime.cancelRequest(message.requestId);
+            aiRequestIds.delete(message.requestId);
+            return;
+          }
+
+          if (message.type === 'aiRequestStart') {
+            log(
+              `AI request start: id=${message.requestId} route=${message.route} ${this.summarizeAiRequest(message.body)}`
+            );
+            log(
+              `AI request payload (full): id=${message.requestId}\n${this.formatAiRequestBody(
+                message.body
+              )}`
+            );
+            const latestUserContent = this.extractLatestUserContent(message.body);
+            if (latestUserContent) {
+              log(
+                `AI request user content (normalized): id=${message.requestId}\n${latestUserContent}`
+              );
+            }
+            aiResponseRawByRequestId.set(message.requestId, '');
+            aiResponseTextByRequestId.set(message.requestId, '');
+            aiRequestIds.add(message.requestId);
+            void this.aiRuntime.streamRequest(message, {
+              onChunk: (chunk) => {
+                aiResponseRawByRequestId.set(
+                  message.requestId,
+                  `${aiResponseRawByRequestId.get(message.requestId) ?? ''}${chunk}`
+                );
+                aiResponseTextByRequestId.set(
+                  message.requestId,
+                  `${
+                    aiResponseTextByRequestId.get(message.requestId) ?? ''
+                  }${this.extractTextDeltaFromSseChunk(chunk)}`
+                );
+                void webviewPanel.webview.postMessage({
+                  type: 'aiStreamChunk',
+                  requestId: message.requestId,
+                  chunk,
+                });
+              },
+              onEnd: () => {
+                aiRequestIds.delete(message.requestId);
+                const fullText = aiResponseTextByRequestId.get(message.requestId) ?? '';
+                const fullRaw = aiResponseRawByRequestId.get(message.requestId) ?? '';
+                log(
+                  `AI response (full): id=${message.requestId}\n${
+                    fullText.trim().length > 0 ? fullText : fullRaw
+                  }`
+                );
+                aiResponseRawByRequestId.delete(message.requestId);
+                aiResponseTextByRequestId.delete(message.requestId);
+                log(`AI request end: id=${message.requestId} status=ok`);
+                void webviewPanel.webview.postMessage({
+                  type: 'aiStreamEnd',
+                  requestId: message.requestId,
+                });
+              },
+              onError: (errorMessage) => {
+                aiRequestIds.delete(message.requestId);
+                const partialText = aiResponseTextByRequestId.get(message.requestId) ?? '';
+                if (partialText.trim().length > 0) {
+                  log(`AI response (partial): id=${message.requestId}\n${partialText}`);
+                }
+                aiResponseRawByRequestId.delete(message.requestId);
+                aiResponseTextByRequestId.delete(message.requestId);
+                log(
+                  `AI request end: id=${message.requestId} status=error message=${errorMessage.replace(/\s+/g, ' ').slice(0, 300)}`
+                );
+                void webviewPanel.webview.postMessage({
+                  type: 'aiStreamError',
+                  requestId: message.requestId,
+                  message: errorMessage,
+                });
+              },
+            });
+            return;
+          }
+
           if (message.type === 'webviewError') {
             const details = [message.message, message.source, message.stack]
               .filter(Boolean)
@@ -385,7 +691,6 @@ export class MadenMarkdownEditorProvider
           const current = this.documentText.get(key) ?? '';
           const retitled = enforceTitleHeading(current, rename.newUri.fsPath);
           this.documentText.set(key, retitled);
-          void this.writeDocumentToDisk(rename.newUri, retitled);
           postOrQueue(buildStateMessage('externalDocumentUpdated', rename.newUri.fsPath));
         })
       );
@@ -400,7 +705,7 @@ export class MadenMarkdownEditorProvider
             return;
           }
 
-          if (applyingHostWrite > 0) {
+          if (runtime.applyingHostWrite > 0) {
             return;
           }
 
@@ -442,6 +747,10 @@ export class MadenMarkdownEditorProvider
       subscriptions.push(
         webviewPanel.onDidDispose(() => {
           clearTimer();
+          for (const requestId of aiRequestIds) {
+            this.aiRuntime.cancelRequest(requestId);
+          }
+          aiRequestIds.clear();
           startupDiffCheckTimers.forEach((timer) => clearTimeout(timer));
           subscriptions.forEach((disposable) => disposable.dispose());
 
@@ -450,6 +759,7 @@ export class MadenMarkdownEditorProvider
             docPanels.delete(webviewPanel);
             if (docPanels.size === 0) {
               this.panelsByDocument.delete(key);
+              this.runtimeByDocument.delete(key);
             }
           }
         })
@@ -477,8 +787,16 @@ export class MadenMarkdownEditorProvider
     _cancellation: vscode.CancellationToken
   ): Promise<void> {
     const key = document.uri.toString();
+    const filePath = this.documentFilePath.get(key) ?? document.uri.fsPath;
+    await this.flushPendingMarkdownForDocument(document.uri, key, filePath);
+    const runtime = this.getRuntimeState(key);
     const text = this.documentText.get(key) ?? enforceTitleHeading('', document.uri.fsPath);
-    await this.writeDocumentToDisk(document.uri, text);
+    runtime.applyingHostWrite += 1;
+    try {
+      await this.writeDocumentToDisk(document.uri, text);
+    } finally {
+      runtime.applyingHostWrite = Math.max(0, runtime.applyingHostWrite - 1);
+    }
   }
 
   public async saveCustomDocumentAs(
@@ -487,6 +805,8 @@ export class MadenMarkdownEditorProvider
     _cancellation: vscode.CancellationToken
   ): Promise<void> {
     const key = document.uri.toString();
+    const sourceFilePath = this.documentFilePath.get(key) ?? document.uri.fsPath;
+    await this.flushPendingMarkdownForDocument(document.uri, key, sourceFilePath);
     const text = this.documentText.get(key) ?? enforceTitleHeading('', destination.fsPath);
     await this.writeDocumentToDisk(destination, enforceTitleHeading(text, destination.fsPath));
   }
@@ -506,9 +826,7 @@ export class MadenMarkdownEditorProvider
       filePath: this.documentFilePath.get(key) ?? document.uri.fsPath,
       workspacePaths: (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath),
       readOnly: vscode.workspace.fs.isWritableFileSystem(document.uri.scheme) === false,
-      aiEnabled: vscode.workspace
-        .getConfiguration('maden', document.uri)
-        .get<boolean>('ai.enabled', false),
+      aiEnabled: (await this.aiRuntime.loadSettingsPublic()).enabled,
     });
   }
 
@@ -544,6 +862,17 @@ export class MadenMarkdownEditorProvider
     }
   }
 
+  private postAiEnabledToAllPanels(aiEnabled: boolean) {
+    for (const panels of this.panelsByDocument.values()) {
+      for (const panel of panels) {
+        void panel.webview.postMessage({
+          type: 'setAiEnabled',
+          aiEnabled,
+        });
+      }
+    }
+  }
+
   private async readFileSafe(uri: vscode.Uri): Promise<string> {
     try {
       const bytes = await vscode.workspace.fs.readFile(uri);
@@ -554,6 +883,13 @@ export class MadenMarkdownEditorProvider
   }
 
   private async writeDocumentToDisk(uri: vscode.Uri, text: string): Promise<void> {
+    const current = await this.readFileSafe(uri);
+    const normalizedCurrent = current.replace(/\r\n/g, '\n');
+    const normalizedNext = text.replace(/\r\n/g, '\n');
+    if (normalizedCurrent === normalizedNext) {
+      return;
+    }
+
     await vscode.workspace.fs.writeFile(uri, Buffer.from(text, 'utf8'));
   }
 

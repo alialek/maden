@@ -26,6 +26,75 @@ const stripMarkdownWrappers = (value: string) =>
     .replace(/\s*(\*\*|__|\*|_)+\s*$/, '')
     .trim();
 
+const toTextNode = (value: unknown): { text: string } => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const candidate = value as { text?: unknown };
+    if (typeof candidate.text === 'string') {
+      return { text: candidate.text };
+    }
+  }
+
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return { text: String(value) };
+  }
+
+  return { text: '' };
+};
+
+const normalizeChildren = (children: unknown): Array<{ text: string } | TElement> => {
+  if (!Array.isArray(children) || children.length === 0) {
+    return [{ text: '' }];
+  }
+
+  return children.map((child) => normalizeElementNode(child, false));
+};
+
+const normalizeElementNode = (node: unknown, topLevel = true): TElement | { text: string } => {
+  if (node && typeof node === 'object' && !Array.isArray(node)) {
+    const candidate = node as { children?: unknown; text?: unknown; type?: unknown };
+    const candidateType = typeof candidate.type === 'string' ? candidate.type : undefined;
+    if (Array.isArray(candidate.children)) {
+      const type = candidateType ?? KEYS.p;
+      return {
+        ...(candidate as Record<string, unknown>),
+        children: normalizeChildren(candidate.children),
+        type,
+      } as TElement;
+    }
+
+    if (typeof candidate.text === 'string') {
+      if (!topLevel) {
+        return { text: candidate.text };
+      }
+
+      return {
+        type: KEYS.p,
+        children: [{ text: candidate.text }],
+      } as TElement;
+    }
+
+    if (candidateType) {
+      return {
+        ...(candidate as Record<string, unknown>),
+        type: candidateType,
+        children: [{ text: '' }],
+      } as TElement;
+    }
+  }
+
+  if (!topLevel) {
+    return toTextNode(node);
+  }
+
+  return {
+    type: KEYS.p,
+    children: [toTextNode(node)],
+  } as TElement;
+};
+
+const normalizeValueNodes = (value: Value): Value =>
+  value.map((node) => normalizeElementNode(node, true) as TElement);
+
 export const splitMarkdownByDetails = (markdown: string): DetailsSection[] => {
   const sections: DetailsSection[] = [];
   let lastIndex = 0;
@@ -72,11 +141,11 @@ export const materializeDetailsSections = (
 
   for (const section of sections) {
     if (section.type === 'markdown') {
-      output.push(...parseMarkdown(section.content));
+      output.push(...normalizeValueNodes(parseMarkdown(section.content)));
       continue;
     }
 
-    const bodyNodes = parseMarkdown(section.body);
+    const bodyNodes = normalizeValueNodes(parseMarkdown(section.body));
     output.push({
       type: KEYS.toggle,
       children: [{ text: section.summary }],
@@ -128,6 +197,21 @@ export const serializeDetailsSections = (
   serializeMarkdown: (value: Value) => string
 ): string => {
   const blocks: string[] = [];
+  const pendingMarkdownNodes: Value = [];
+
+  const flushPendingMarkdownNodes = () => {
+    if (pendingMarkdownNodes.length === 0) {
+      return;
+    }
+
+    const serialized = normalizeSerializedBlock(serializeMarkdown(pendingMarkdownNodes));
+    pendingMarkdownNodes.length = 0;
+
+    if (serialized.length > 0) {
+      blocks.push(serialized);
+    }
+  };
+
   let index = 0;
 
   while (index < value.length) {
@@ -135,13 +219,12 @@ export const serializeDetailsSections = (
     const currentType = String((current as { type?: unknown }).type ?? '');
 
     if (currentType !== KEYS.toggle) {
-      const serialized = normalizeSerializedBlock(serializeMarkdown([current]));
-      if (serialized.length > 0) {
-        blocks.push(serialized);
-      }
+      pendingMarkdownNodes.push(current);
       index += 1;
       continue;
     }
+
+    flushPendingMarkdownNodes();
 
     const summaryRaw = getTextFromNode(current).trim();
     const summary = escapeHtml(summaryRaw || 'Details');
@@ -169,6 +252,8 @@ export const serializeDetailsSections = (
     blocks.push(detailsMarkdown);
     index = cursor;
   }
+
+  flushPendingMarkdownNodes();
 
   return `${blocks.join('\n\n')}\n`;
 };

@@ -186,9 +186,67 @@
     z-index: 60;
   }
 
+  @keyframes maden-ai-shimmer-slide {
+    from {
+      transform: translateX(-150%);
+    }
+    to {
+      transform: translateX(150%);
+    }
+  }
+
+  .maden-ai-rewrite-shimmer {
+    position: relative;
+    border-radius: 0.375rem;
+    overflow: hidden;
+  }
+
+  .maden-ai-rewrite-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(
+      110deg,
+      transparent 20%,
+      color-mix(in oklab, var(--vscode-editor-foreground, var(--foreground)) 20%, transparent) 45%,
+      color-mix(in oklab, var(--vscode-editor-foreground, var(--foreground)) 36%, transparent) 50%,
+      color-mix(in oklab, var(--vscode-editor-foreground, var(--foreground)) 20%, transparent) 55%,
+      transparent 80%
+    );
+    animation: maden-ai-shimmer-slide 1.56s linear infinite;
+  }
+
+  @supports not (color: color-mix(in oklab, red, transparent)) {
+    .maden-ai-rewrite-shimmer::after {
+      background: linear-gradient(
+        110deg,
+        transparent 20%,
+        rgb(185 185 185 / 0.24) 45%,
+        rgb(225 225 225 / 0.34) 50%,
+        rgb(185 185 185 / 0.24) 55%,
+        transparent 80%
+      );
+    }
+  }
+
   [data-slot='inline-combobox-item']:hover,
   [data-slot='inline-combobox-item'][data-active-item='true'] {
     background-color: var(--vscode-list-hoverBackground, var(--accent));
+    color: var(--vscode-list-hoverForeground, var(--foreground));
+  }
+
+  [data-slot='command-item']:hover,
+  [data-slot='command-item'][data-selected='true'] {
+    background-color: var(
+      --vscode-list-hoverBackground,
+      color-mix(
+        in oklab,
+        var(--vscode-editor-foreground, var(--foreground)) 12%,
+        transparent
+      )
+    );
     color: var(--vscode-list-hoverForeground, var(--foreground));
   }
 
@@ -196,6 +254,12 @@
     [data-slot='inline-combobox-item']:hover,
     [data-slot='inline-combobox-item'][data-active-item='true'] {
       background-color: var(--accent);
+      color: var(--accent-foreground);
+    }
+
+    [data-slot='command-item']:hover,
+    [data-slot='command-item'][data-selected='true'] {
+      background-color: rgb(127 127 127 / 0.2);
       color: var(--accent-foreground);
     }
   }

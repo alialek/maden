@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { ENABLE_AI_FEATURES } from '../../shared/feature-flags';
 import type { HostToWebviewMessage } from '../../shared/messages';
+import { dispatchAiEnabledChanged } from './use-ai-enabled';
 
 import { postToHost } from '@/vscode';
 
@@ -39,6 +40,18 @@ export const useWebviewDocumentState = () => {
             ? {
                 ...current,
                 readOnly: message.readOnly,
+              }
+            : current
+        );
+        return;
+      }
+
+      if (message.type === 'setAiEnabled') {
+        setDocumentState((current) =>
+          current
+            ? {
+                ...current,
+                aiEnabled: message.aiEnabled,
               }
             : current
         );
@@ -103,7 +116,7 @@ export const useWebviewDocumentState = () => {
 
     if (isStandaloneBrowser) {
       setDocumentState({
-        aiEnabled: false,
+        aiEnabled: true,
         fileName: 'untitled.md',
         filePath: 'untitled.md',
         markdown: DEV_FALLBACK_MARKDOWN,
@@ -120,6 +133,7 @@ export const useWebviewDocumentState = () => {
   React.useEffect(() => {
     (window as Window & { __MADEN_AI_ENABLED__?: boolean }).__MADEN_AI_ENABLED__ =
       (documentState?.aiEnabled ?? false) && ENABLE_AI_FEATURES;
+    dispatchAiEnabledChanged();
   }, [documentState?.aiEnabled]);
 
   React.useEffect(() => {

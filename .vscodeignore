@@ -1,0 +1,50 @@
+# Source and config not needed at runtime
+src/**
+tests/**
+test-results/**
+scripts/**
+.codex/**
+.vscode/**
+docs/**
+.github/**
+AGENTS.md
+
+# Development/build files
+node_modules/**
+coverage/**
+.vitest/**
+*.log
+*.ts
+*.tsx
+tsconfig*.json
+vite.config.ts
+postcss.config.js
+tailwind.config.js
+components.json
+index.html
+
+# Local/system artifacts
+.DS_Store
+.gitignore
+maden-*.vsix
+tmp-*.mjs
+icon.svg
+
+# Keep only packaged output and metadata
+dist/**
+!dist/extension/**/*.js
+!dist/webview/index.html
+!dist/webview/main.css
+!dist/webview/main.js
+!dist/webview/assets/**
+!dist/webview/chunks/**/*.js
+!dist/webview/chunks/**/*.css
+!package.json
+!README.md
+!LICENSE*
+!icon.png
+
+# Global hard excludes (vsce/glob edge cases)
+**/*.map
+**/.tsbuildinfo
+**/.DS_Store

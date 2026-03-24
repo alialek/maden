@@ -33,11 +33,11 @@ import {
 import { type TComboboxInputElement, KEYS } from 'platejs';
 import { PlateElement } from 'platejs/react';
 
-import { ENABLE_AI_FEATURES } from '../../../shared/feature-flags';
 import {
   insertBlock,
   insertInlineElement,
 } from '@/components/editor/transforms';
+import { useAiEnabled } from '@/hooks/use-ai-enabled';
 
 import {
   InlineCombobox,
@@ -275,14 +275,14 @@ const groups: Group[] = [
   },
 ];
 
-const visibleGroups: Group[] = ENABLE_AI_FEATURES
-  ? groups
-  : groups.filter((group) => group.group !== 'AI');
-
 export function SlashInputElement(
   props: PlateElementProps<TComboboxInputElement>
 ) {
   const { editor, element } = props;
+  const aiEnabled = useAiEnabled();
+  const visibleGroups = aiEnabled
+    ? groups
+    : groups.filter((group) => group.group !== 'AI');
 
   return (
     <PlateElement {...props} as="span">

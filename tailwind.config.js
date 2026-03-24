@@ -17,6 +17,7 @@ module.exports = {
         card: 'var(--card)',
         'card-foreground': 'var(--card-foreground)',
         foreground: 'var(--foreground)',
+        highlight: 'var(--highlight)',
         input: 'var(--input)',
         muted: 'var(--muted)',
         'muted-foreground': 'var(--muted-foreground)',

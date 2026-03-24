@@ -1,0 +1,164 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - button "Editor appearance" [ref=e4] [cursor=pointer]:
+      - img
+    - generic [ref=e6]:
+      - toolbar [ref=e7]:
+        - generic [ref=e8]:
+          - generic [ref=e10]:
+            - button [disabled]:
+              - img
+            - button [disabled]:
+              - img
+          - button [ref=e13] [cursor=pointer]:
+            - img
+          - generic [ref=e15]:
+            - button [ref=e16] [cursor=pointer]:
+              - generic [ref=e17]:
+                - img
+              - generic [ref=e18]:
+                - img
+            - button "Text" [ref=e19] [cursor=pointer]:
+              - generic [ref=e20]: Text
+              - generic [ref=e21]:
+                - img
+            - generic [ref=e22]:
+              - button [ref=e23] [cursor=pointer]:
+                - img
+              - textbox [ref=e24]: "16"
+              - button [ref=e25] [cursor=pointer]:
+                - img
+          - generic [ref=e27]:
+            - button [ref=e28] [cursor=pointer]:
+              - img
+            - button [ref=e29] [cursor=pointer]:
+              - img
+            - button [ref=e30] [cursor=pointer]:
+              - img
+            - button [ref=e31] [cursor=pointer]:
+              - img
+            - button [ref=e32] [cursor=pointer]:
+              - img
+            - button [ref=e33] [cursor=pointer]:
+              - img
+            - button [ref=e34] [cursor=pointer]:
+              - img
+          - generic [ref=e36]:
+            - button [ref=e37] [cursor=pointer]:
+              - generic [ref=e38]:
+                - img
+              - generic [ref=e39]:
+                - img
+            - generic [ref=e40]:
+              - generic [ref=e41] [cursor=pointer]:
+                - img
+              - button [ref=e42] [cursor=pointer]:
+                - img [ref=e43]
+            - generic [ref=e45]:
+              - generic [ref=e46] [cursor=pointer]:
+                - img
+              - button [ref=e47] [cursor=pointer]:
+                - img [ref=e48]
+            - button [ref=e50] [cursor=pointer]:
+              - img
+            - button [ref=e51] [cursor=pointer]:
+              - img
+          - generic [ref=e53]:
+            - button [ref=e54] [cursor=pointer]:
+              - img
+            - button [ref=e55] [cursor=pointer]:
+              - generic [ref=e56]:
+                - img
+              - generic [ref=e57]:
+                - img
+            - button [ref=e58] [cursor=pointer]:
+              - generic [ref=e59]:
+                - img
+              - generic [ref=e60]:
+                - img
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - generic [ref=e64] [cursor=pointer]:
+                - img
+              - button [ref=e65] [cursor=pointer]:
+                - img [ref=e66]
+            - generic [ref=e68]:
+              - generic [ref=e69] [cursor=pointer]:
+                - img
+              - button [ref=e70] [cursor=pointer]:
+                - img [ref=e71]
+            - generic [ref=e73]:
+              - generic [ref=e74] [cursor=pointer]:
+                - img
+              - button [ref=e75] [cursor=pointer]:
+                - img [ref=e76]
+            - generic [ref=e78]:
+              - generic [ref=e79] [cursor=pointer]:
+                - img
+              - button [ref=e80] [cursor=pointer]:
+                - img [ref=e81]
+          - generic [ref=e84]:
+            - button [ref=e85] [cursor=pointer]:
+              - generic [ref=e86]:
+                - img
+              - generic [ref=e87]:
+                - img
+            - button [ref=e88] [cursor=pointer]:
+              - img
+            - button [ref=e89] [cursor=pointer]:
+              - img
+          - button [ref=e92] [cursor=pointer]:
+            - img
+          - generic [ref=e94]:
+            - button [ref=e95] [cursor=pointer]:
+              - img
+            - button [ref=e96] [cursor=pointer]:
+              - img
+          - button "Editing" [ref=e99] [cursor=pointer]:
+            - generic [ref=e100]:
+              - img
+              - generic [ref=e101]: Editing
+            - generic [ref=e102]:
+              - img
+      - textbox [ref=e104]:
+        - generic [ref=e105]:
+          - button [ref=e109] [cursor=pointer]:
+            - img
+          - heading "Playwright AI test\\n\\nThis paragraph should be selected for AI improve writing action." [level=1] [ref=e111]:
+            - generic [ref=e113]: Playwright AI test\n\nThis paragraph should be selected for AI improve writing action.
+        - button [ref=e118] [cursor=pointer]:
+          - img
+  - textbox [ref=e121]
+  - dialog [ref=e123]:
+    - generic [ref=e124]:
+      - combobox [expanded] [active] [ref=e126]
+      - listbox "Suggestions" [ref=e127]:
+        - group [ref=e129]:
+          - option "Comment" [selected] [ref=e130] [cursor=pointer]:
+            - img
+            - generic [ref=e131]: Comment
+            - img
+          - option "Generate MDX sample" [ref=e132] [cursor=pointer]:
+            - img
+            - generic [ref=e133]: Generate MDX sample
+            - img
+          - option "Generate Markdown sample" [ref=e134] [cursor=pointer]:
+            - img
+            - generic [ref=e135]: Generate Markdown sample
+            - img
+          - option "Continue writing" [ref=e136] [cursor=pointer]:
+            - img
+            - generic [ref=e137]: Continue writing
+            - img
+          - option "Add a summary" [ref=e138] [cursor=pointer]:
+            - img
+            - generic [ref=e139]: Add a summary
+            - img
+          - option "Explain" [ref=e140] [cursor=pointer]:
+            - img
+            - generic [ref=e141]: Explain
+            - img
+```

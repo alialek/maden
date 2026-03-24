@@ -7,16 +7,20 @@ import { faker } from '@faker-js/faker';
 import {
   AIChatPlugin,
   aiCommentToRange,
+  applyAISuggestions,
   applyTableCellSuggestion,
+  streamInsertChunk,
 } from '@platejs/ai/react';
 import { getCommentKey, getTransientCommentKey } from '@platejs/comment';
 import { deserializeMd } from '@platejs/markdown';
 import { BlockSelectionPlugin } from '@platejs/selection/react';
 import { type UIMessage, DefaultChatTransport } from 'ai';
-import { type TNode, KEYS, nanoid, NodeApi, TextApi } from 'platejs';
+import { type TNode, getPluginType, KEYS, nanoid, NodeApi, PathApi, TextApi } from 'platejs';
 import { type PlateEditor, useEditorRef, usePluginOption } from 'platejs/react';
 
 import { aiChatPlugin } from '@/components/editor/plugins/ai-kit';
+import { commentPlugin } from '@/components/editor/plugins/comment-kit';
+import { requestHostAiStream } from '@/lib/ai-host-transport';
 
 import { discussionPlugin } from './plugins/discussion-kit';
 import { withAIBatch } from '@platejs/ai';
@@ -50,114 +54,416 @@ export type Chat = UseChatHelpers<ChatMessage>;
 
 export type ChatMessage = UIMessage<{}, MessageDataPart>;
 
+type StructuredAction = 'add' | 'comment' | 'inline';
+
+type ParsedStructuredResponse = {
+  action: StructuredAction;
+  content: string;
+  isClosed: boolean;
+  isStructured: boolean;
+};
+
+export const MadenResponseOpenTagPattern =
+  /<maden-response\s+action="(inline|comment|add)">/i;
+export const MadenResponseCloseTag = '</maden-response>';
+export const AnyMadenResponseTagPattern = /<\/?maden-response\b[^>]*>/gi;
+export const PartialMadenResponseSuffixPattern = /<\/?maden-response[^>]*$/i;
+
+const trimPartialCloseTagSuffix = (value: string) => {
+  for (let length = MadenResponseCloseTag.length - 1; length > 0; length -= 1) {
+    if (value.endsWith(MadenResponseCloseTag.slice(0, length))) {
+      return value.slice(0, -length);
+    }
+  }
+
+  return value;
+};
+
+const readTextParts = (value: unknown): string[] => {
+  if (typeof value === 'string') {
+    return [value];
+  }
+
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((part) => {
+      if (typeof part === 'string') {
+        return part;
+      }
+
+      if (!part || typeof part !== 'object') {
+        return '';
+      }
+
+      const maybePart = part as { text?: unknown; content?: unknown; type?: unknown };
+      if (typeof maybePart.text === 'string') {
+        return maybePart.text;
+      }
+      if (maybePart.type === 'text' && typeof maybePart.content === 'string') {
+        return maybePart.content;
+      }
+      if (typeof maybePart.content === 'string') {
+        return maybePart.content;
+      }
+
+      return '';
+    })
+    .filter((part) => part.length > 0);
+};
+
+const extractMarkdownFromPotentialJson = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+    return trimmed;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as
+      | {
+          input?: unknown;
+          messages?: unknown;
+          prompt?: unknown;
+          selectedContext?: unknown;
+          userPrompt?: unknown;
+        }
+      | unknown[];
+
+    if (Array.isArray(parsed)) {
+      return trimmed;
+    }
+
+    if (typeof parsed.selectedContext === 'string' && parsed.selectedContext.trim()) {
+      return parsed.selectedContext.trim();
+    }
+    if (typeof parsed.userPrompt === 'string' && parsed.userPrompt.trim()) {
+      return parsed.userPrompt.trim();
+    }
+    if (typeof parsed.input === 'string' && parsed.input.trim()) {
+      return parsed.input.trim();
+    }
+    if (typeof parsed.prompt === 'string' && parsed.prompt.trim()) {
+      return parsed.prompt.trim();
+    }
+
+    if (Array.isArray(parsed.messages)) {
+      const normalized = normalizeMessagesForHost(parsed.messages);
+      const latestUser = [...normalized]
+        .reverse()
+        .find((message) => message.role === 'user');
+      if (latestUser?.content) {
+        return latestUser.content;
+      }
+    }
+  } catch {
+    // Keep original text if it's not a JSON payload.
+  }
+
+  return trimmed;
+};
+
+const normalizeMessagesForHost = (messages: unknown): Array<{
+  role: 'assistant' | 'system' | 'user';
+  content: string;
+}> => {
+  if (!Array.isArray(messages)) {
+    return [];
+  }
+
+  return messages
+    .map((entry) => {
+      if (!entry || typeof entry !== 'object') {
+        return null;
+      }
+
+      const message = entry as { role?: unknown; content?: unknown; parts?: unknown };
+      const role = message.role;
+      if (role !== 'assistant' && role !== 'system' && role !== 'user') {
+        return null;
+      }
+
+      const content = [
+        ...readTextParts(message.parts),
+        ...readTextParts(message.content),
+      ]
+        .join('\n')
+        .trim();
+
+      if (!content) {
+        return null;
+      }
+
+      const normalizedContent = extractMarkdownFromPotentialJson(content);
+      if (!normalizedContent) {
+        return null;
+      }
+
+      return {
+        role,
+        content: normalizedContent,
+      };
+    })
+    .filter(
+      (
+        message
+      ): message is { role: 'assistant' | 'system' | 'user'; content: string } =>
+        message !== null
+    );
+};
+
+const pickLatestUserMessage = (
+  messages: Array<{ role: 'assistant' | 'system' | 'user'; content: string }>
+) => {
+  const latestUser = [...messages].reverse().find((message) => message.role === 'user');
+  return latestUser ? [latestUser] : messages.slice(-1);
+};
+
+const extractMessageText = (message: {
+  content?: unknown;
+  parts?: unknown;
+}): string => {
+  const content = [
+    ...readTextParts(message.parts),
+    ...readTextParts(message.content),
+  ]
+    .join('\n')
+    .trim();
+
+  return content ? extractMarkdownFromPotentialJson(content) : '';
+};
+
+const getLatestAssistantText = (messages: ChatMessage[]) => {
+  const latestAssistant = [...messages]
+    .reverse()
+    .find((message) => message.role === 'assistant');
+
+  if (!latestAssistant) {
+    return null;
+  }
+
+  const content = extractMessageText(latestAssistant);
+  if (!content) {
+    return null;
+  }
+
+  return {
+    content,
+    id: latestAssistant.id,
+  };
+};
+
+const parseStructuredResponse = (value: string): ParsedStructuredResponse | null => {
+  const match = value.match(MadenResponseOpenTagPattern);
+  if (!match || match.index === undefined) {
+    return null;
+  }
+
+  const action = match[1]?.toLowerCase() as StructuredAction | undefined;
+  if (action !== 'inline' && action !== 'comment' && action !== 'add') {
+    return null;
+  }
+
+  const bodyStart = match.index + match[0].length;
+  const remainder = value.slice(bodyStart);
+  const closeIndex = remainder.indexOf(MadenResponseCloseTag);
+  const rawContent =
+    closeIndex >= 0
+      ? remainder.slice(0, closeIndex)
+      : trimPartialCloseTagSuffix(remainder);
+  const content = rawContent.replace(/^\s+/, '');
+
+  return {
+    action,
+    content,
+    isClosed: closeIndex >= 0,
+    isStructured: true,
+  };
+};
+
+export const stripStructuredResponseWrappers = (value: string): string =>
+  value
+    .replace(AnyMadenResponseTagPattern, '')
+    .replace(PartialMadenResponseSuffixPattern, '')
+    .trim();
+
+const getInsertionPath = (editor: PlateEditor) => {
+  const chatSelection = editor.getOption(AIChatPlugin, 'chatSelection') as
+    | { focus?: { path?: unknown } }
+    | undefined;
+  const focusPath = chatSelection?.focus?.path;
+
+  if (Array.isArray(focusPath) && focusPath.length > 0) {
+    return PathApi.next(focusPath.slice(0, 1) as any);
+  }
+
+  const blockEntry = editor.api.block({ highest: true });
+  if (blockEntry?.[1]) {
+    return PathApi.next((blockEntry[1] as any).slice(0, 1));
+  }
+
+  return [editor.children.length];
+};
+
+const beginStreamingInsert = (editor: PlateEditor) => {
+  editor.tf.withoutSaving(() => {
+    editor.tf.insertNodes(
+      {
+        children: [{ text: '' }],
+        type: getPluginType(editor, KEYS.aiChat),
+      },
+      {
+        at: getInsertionPath(editor) as any,
+      }
+    );
+  });
+  editor.setOption(AIChatPlugin, 'streaming', true);
+  editor.setOption(AIChatPlugin, 'mode', 'insert');
+  editor.setOption(AIChatPlugin, 'toolName', 'generate');
+};
+
+const addCommentDiscussionFromText = (
+  editor: PlateEditor,
+  commentText: string
+): string | null => {
+  const normalizedComment = stripStructuredResponseWrappers(commentText);
+  if (!normalizedComment) {
+    return null;
+  }
+
+  const chatSelection = editor.getOption(AIChatPlugin, 'chatSelection');
+  const selectedBlocks = editor
+    .getApi(BlockSelectionPlugin)
+    .blockSelection.getNodes({ selectionFallback: true, sort: true });
+
+  const blockEntry =
+    (chatSelection
+      ? editor.api.block({ at: chatSelection as any, highest: true })
+      : null) ??
+    selectedBlocks[0] ??
+    editor.api.block({ highest: true }) ??
+    null;
+
+  if (!blockEntry) {
+    return null;
+  }
+
+  const blockNode = blockEntry[0];
+  const blockPath = blockEntry[1];
+  const documentContent = NodeApi.string(blockNode).trim();
+  const discussionId = nanoid();
+  const discussions = editor.getOption(discussionPlugin, 'discussions') || [];
+
+  const newComment = {
+    id: nanoid(),
+    contentRich: [{ children: [{ text: normalizedComment }], type: 'p' }],
+    createdAt: new Date(),
+    discussionId,
+    isEdited: false,
+    userId: editor.getOption(discussionPlugin, 'currentUserId'),
+  };
+
+  const newDiscussion = {
+    id: discussionId,
+    comments: [newComment],
+    createdAt: new Date(),
+    documentContent,
+    isResolved: false,
+    userId: editor.getOption(discussionPlugin, 'currentUserId'),
+  };
+
+  editor.setOption(discussionPlugin, 'discussions', [...discussions, newDiscussion]);
+
+  editor.tf.withMerging(() => {
+    editor.tf.setNodes(
+      {
+        [getCommentKey(newDiscussion.id)]: true,
+        [KEYS.comment]: true,
+      },
+      {
+        at: (chatSelection as any) ?? blockPath,
+        match: TextApi.isText,
+        split: Boolean(chatSelection),
+      }
+    );
+  });
+
+  editor.setOption(commentPlugin, 'activeId', newDiscussion.id);
+  editor.getApi(BlockSelectionPlugin).blockSelection.deselect();
+  editor.getApi(AIChatPlugin).aiChat.hide();
+
+  return newDiscussion.id;
+};
+
 export const useChat = () => {
   const editor = useEditorRef();
   const options = usePluginOption(aiChatPlugin, 'chatOptions');
 
-  // remove when you implement the route /api/ai/command
-  const abortControllerRef = React.useRef<AbortController | null>(null);
-  const _abortFakeStream = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-  };
+  const _abortFakeStream = () => {};
 
   const baseChat = useBaseChat<ChatMessage>({
     id: 'editor',
     transport: new DefaultChatTransport({
       api: options.api || '/api/ai/command',
-      // Mock the API response. Remove it when you implement the route /api/ai/command
       fetch: (async (input, init) => {
         const bodyOptions = editor.getOptions(aiChatPlugin).chatOptions?.body;
-
-        const initBody = JSON.parse(init?.body as string);
+        const rawBody = typeof init?.body === 'string' ? init.body : '{}';
+        const initBody = JSON.parse(rawBody);
+        const merged = {
+          ...(initBody as Record<string, unknown>),
+          ...((bodyOptions as Record<string, unknown> | undefined) ?? {}),
+        };
+        const normalizedMessages = normalizeMessagesForHost(merged.messages);
+        const compactMessages = pickLatestUserMessage(normalizedMessages);
 
         const body = {
-          ...initBody,
-          ...bodyOptions,
+          messages: compactMessages,
+          selectedContext:
+            typeof merged.selectedContext === 'string' ? merged.selectedContext : undefined,
+          provider: typeof merged.provider === 'string' ? merged.provider : undefined,
+          model: typeof merged.model === 'string' ? merged.model : undefined,
+          apiKey: typeof merged.apiKey === 'string' ? merged.apiKey : undefined,
+          baseUrl: typeof merged.baseUrl === 'string' ? merged.baseUrl : undefined,
+          enabled: typeof merged.enabled === 'boolean' ? merged.enabled : undefined,
+          gigachatMode:
+            merged.gigachatMode === 'native' || merged.gigachatMode === 'openaiCompatible'
+              ? merged.gigachatMode
+              : undefined,
+          gigachatClientId:
+            typeof merged.gigachatClientId === 'string'
+              ? merged.gigachatClientId
+              : undefined,
+          gigachatClientSecret:
+            typeof merged.gigachatClientSecret === 'string'
+              ? merged.gigachatClientSecret
+              : undefined,
+          gigachatScope:
+            typeof merged.gigachatScope === 'string' ? merged.gigachatScope : undefined,
+          maxTokens:
+            typeof merged.maxTokens === 'number' && Number.isFinite(merged.maxTokens)
+              ? merged.maxTokens
+              : undefined,
+          temperature:
+            typeof merged.temperature === 'number' && Number.isFinite(merged.temperature)
+              ? merged.temperature
+              : undefined,
         };
 
-        const res = await fetch(input, {
-          ...init,
+        const route =
+          typeof input === 'string' && input.includes('/api/ai/copilot')
+            ? 'copilot'
+            : 'command';
+
+        return requestHostAiStream({
           body: JSON.stringify(body),
+          route,
+          signal: init?.signal ?? undefined,
         });
-
-        if (!res.ok) {
-          let sample: 'comment' | 'markdown' | 'mdx' | 'table' | null = null;
-
-          try {
-            const body = JSON.parse(init?.body as string);
-            const content = body.messages
-              .at(-1)
-              .parts.find((p: any) => p.type === 'text')?.text;
-
-            if (content.includes('Generate a markdown sample')) {
-              sample = 'markdown';
-            } else if (content.includes('Generate a mdx sample')) {
-              sample = 'mdx';
-            } else if (content.includes('comment')) {
-              sample = 'comment';
-            }
-
-            // Detect table editing by checking if multiple table cells are selected
-            // Single cell selection should use normal edit flow, only multi-cell uses table tool
-            if (!sample) {
-              // First check: selectedCells from TablePlugin (cell selection mode)
-              const selectedCells =
-                editor.getOption({ key: KEYS.table }, 'selectedCells') || [];
-
-              if (selectedCells.length > 1) {
-                sample = 'table';
-              }
-              // Second check: selection range spans multiple cells
-              else if (body.ctx?.children && body.ctx?.selection) {
-                const { selection, children } = body.ctx;
-                const anchorPath = selection.anchor?.path;
-                const focusPath = selection.focus?.path;
-
-                if (anchorPath && anchorPath.length >= 3) {
-                  const rootIndex = anchorPath[0];
-                  const rootNode = children[rootIndex];
-
-                  if (rootNode?.type === 'table') {
-                    // Cell path is at index 2 (table -> row -> cell)
-                    const anchorCellPath = anchorPath.slice(0, 3).join(',');
-                    const focusCellPath = focusPath?.slice(0, 3).join(',');
-
-                    // Only use table mock if anchor and focus are in different cells
-                    if (focusCellPath && anchorCellPath !== focusCellPath) {
-                      sample = 'table';
-                    }
-                  }
-                }
-              }
-            }
-          } catch {
-            sample = null;
-          }
-
-          abortControllerRef.current = new AbortController();
-
-          await new Promise((resolve) => setTimeout(resolve, 400));
-
-          const stream = fakeStreamText({
-            editor,
-            sample,
-            signal: abortControllerRef.current.signal,
-          });
-
-          const response = new Response(stream, {
-            headers: {
-              Connection: 'keep-alive',
-              'Content-Type': 'text/plain',
-            },
-          });
-
-          return response;
-        }
-
-        return res;
       }) as typeof fetch,
     }),
     onData(data) {
@@ -256,6 +562,128 @@ export const useChat = () => {
     ...baseChat,
     _abortFakeStream,
   };
+
+  const handledCommentMessageIdRef = React.useRef<string | null>(null);
+  const streamedStructuredRef = React.useRef<{
+    action: StructuredAction;
+    consumed: number;
+    id: string;
+    started: boolean;
+  } | null>(null);
+
+  React.useEffect(() => {
+    const toolName = editor.getOption(AIChatPlugin, 'toolName');
+    if (toolName !== 'comment') {
+      streamedStructuredRef.current = null;
+      return;
+    }
+
+    const latestAssistant = getLatestAssistantText(chat.messages);
+    if (!latestAssistant) {
+      return;
+    }
+
+    const parsed = parseStructuredResponse(latestAssistant.content);
+    if (!parsed?.isStructured) {
+      return;
+    }
+
+    if (chat.status === 'streaming' && parsed.action === 'add') {
+      const previous = streamedStructuredRef.current;
+      if (!previous || previous.id !== latestAssistant.id) {
+        streamedStructuredRef.current = {
+          action: parsed.action,
+          consumed: 0,
+          id: latestAssistant.id,
+          started: false,
+        };
+      }
+
+      const state = streamedStructuredRef.current;
+      if (!state) {
+        return;
+      }
+
+      if (!state.started) {
+        beginStreamingInsert(editor);
+        state.started = true;
+      }
+
+      const nextContent = parsed.content;
+      if (nextContent.length <= state.consumed) {
+        return;
+      }
+
+      const delta = nextContent.slice(state.consumed);
+      state.consumed = nextContent.length;
+
+      withAIBatch(editor, () => {
+        streamInsertChunk(editor, delta, {
+          textProps: {
+            [getPluginType(editor, KEYS.ai)]: true,
+          },
+        });
+      });
+    }
+  }, [chat.messages, chat.status, editor]);
+
+  React.useEffect(() => {
+    const toolName = editor.getOption(AIChatPlugin, 'toolName');
+    if (toolName !== 'comment' || chat.status !== 'ready') {
+      return;
+    }
+
+    const latestAssistant = getLatestAssistantText(chat.messages);
+    if (!latestAssistant) {
+      return;
+    }
+
+    if (handledCommentMessageIdRef.current === latestAssistant.id) {
+      return;
+    }
+
+    const parsed = parseStructuredResponse(latestAssistant.content);
+    if (parsed?.isStructured) {
+      if (parsed.action === 'comment') {
+        const discussionId = addCommentDiscussionFromText(editor, parsed.content);
+        if (!discussionId) {
+          return;
+        }
+      }
+
+      if (parsed.action === 'inline') {
+        editor.setOption(AIChatPlugin, 'mode', 'chat');
+        editor.setOption(AIChatPlugin, 'toolName', 'edit');
+        withAIBatch(editor, () => {
+          applyAISuggestions(editor, stripStructuredResponseWrappers(parsed.content));
+        });
+      }
+
+      if (parsed.action === 'add') {
+        const streamed = streamedStructuredRef.current;
+        if (!streamed || streamed.id !== latestAssistant.id) {
+          beginStreamingInsert(editor);
+          withAIBatch(editor, () => {
+            streamInsertChunk(editor, stripStructuredResponseWrappers(parsed.content), {
+              textProps: {
+                [getPluginType(editor, KEYS.ai)]: true,
+              },
+            });
+          });
+        }
+        editor.getApi(BlockSelectionPlugin).blockSelection.deselect();
+        editor.getApi(AIChatPlugin).aiChat.hide();
+      }
+    } else {
+      const discussionId = addCommentDiscussionFromText(editor, latestAssistant.content);
+      if (!discussionId) {
+        return;
+      }
+    }
+
+    handledCommentMessageIdRef.current = latestAssistant.id;
+    streamedStructuredRef.current = null;
+  }, [chat.messages, chat.status, editor]);
 
   React.useEffect(() => {
     editor.setOption(AIChatPlugin, 'chat', chat as any);

@@ -53,7 +53,6 @@ export function FloatingToolbar({
   const editorId = useEditorId();
   const focusedEditorId = useEventEditorValue('focus');
   const isFloatingLinkOpen = !!usePluginOption({ key: KEYS.link }, 'mode');
-  const isAIChatOpen = usePluginOption({ key: KEYS.aiChat }, 'open');
   const [position, setPosition] = React.useState<FloatingPosition | null>(null);
   const toolbarRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -82,10 +81,7 @@ export function FloatingToolbar({
     const updatePosition = () => {
       const isInteracting = isInteractingWithFloatingToolbar();
 
-      if (
-        (editorId !== focusedEditorId || isFloatingLinkOpen || isAIChatOpen) &&
-        !isInteracting
-      ) {
+      if ((editorId !== focusedEditorId || isFloatingLinkOpen) && !isInteracting) {
         setPosition(null);
         return;
       }
@@ -120,7 +116,7 @@ export function FloatingToolbar({
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
     };
-  }, [editorId, focusedEditorId, isAIChatOpen, isFloatingLinkOpen]);
+  }, [editorId, focusedEditorId, isFloatingLinkOpen]);
 
   if (!position) {
     return null;

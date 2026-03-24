@@ -1,8 +1,8 @@
 {
   "name": "maden",
-  "displayName": "Maden",
+  "displayName": "Maden - md editor in Notion style",
   "description": "Notion-like Markdown editor for VS Code",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "private": true,
   "publisher": "alialek",
   "icon": "icon.png",
@@ -40,7 +40,7 @@
       "properties": {
         "maden.ai.enabled": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Enable AI actions in the Plate editor."
         },
         "maden.liveWriteDebounceMs": {
@@ -55,8 +55,9 @@
   "scripts": {
     "build": "npm run build:extension && npm run build:webview",
     "build:extension": "tsc -p tsconfig.extension.json --pretty false",
-    "build:webview": "vite build",
-    "build:webview:dev": "vite build --mode development",
+    "build:webview": "vite build && node scripts/prune-webview-assets.mjs",
+    "build:webview:dev": "vite build --mode development && node scripts/prune-webview-assets.mjs",
+    "prune:webview-assets": "node scripts/prune-webview-assets.mjs",
     "watch:extension": "tsc -w -p tsconfig.extension.json --pretty false",
     "watch:webview": "vite build --watch --mode development",
     "dev:webview": "vite",

@@ -17,6 +17,7 @@ import { KEYS } from 'platejs';
 import { useEditorReadOnly, useEditorRef } from 'platejs/react';
 
 import { ENABLE_ADD_TO_CHAT, ENABLE_AI_FEATURES } from '../../../shared/feature-flags';
+import { useAiEnabled } from '@/hooks/use-ai-enabled';
 import { postToHost } from '@/vscode';
 
 import { AIToolbarButton } from './ai-toolbar-button';
@@ -32,7 +33,7 @@ import { TurnIntoToolbarButton } from './turn-into-toolbar-button';
 export function FloatingToolbarButtons() {
   const readOnly = useEditorReadOnly();
   const editor = useEditorRef();
-  const aiEnabled = ENABLE_AI_FEATURES && window.__MADEN_AI_ENABLED__ === true;
+  const aiEnabled = useAiEnabled();
 
   return (
     <>

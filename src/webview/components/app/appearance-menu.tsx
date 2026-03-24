@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { EllipsisVertical, FileIcon, FileTextIcon, FileType2Icon } from 'lucide-react';
+import { EllipsisVertical, FileIcon, FileTextIcon, FileType2Icon, SparklesIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +26,7 @@ export function AppearanceMenu({
   exportActions,
   fontMode,
   onFontModeChange,
+  onOpenAiSettings,
   onTopbarToggle,
   onWideModeToggle,
   topbarVisible,
@@ -34,6 +35,7 @@ export function AppearanceMenu({
   exportActions: ExportActions | null;
   fontMode: FontMode;
   onFontModeChange: (mode: FontMode) => void;
+  onOpenAiSettings: () => void;
   onTopbarToggle: (next: boolean) => void;
   onWideModeToggle: (next: boolean) => void;
   topbarVisible: boolean;
@@ -62,6 +64,16 @@ export function AppearanceMenu({
 
         <DropdownMenuContent align="end" className="w-[340px] p-2">
           <DropdownMenuLabel>Maden</DropdownMenuLabel>
+          <DropdownMenuItem onSelect={onOpenAiSettings}>
+            <SparklesIcon />
+            <span className="flex items-center gap-2">
+              <span>AI settings</span>
+              <span className="rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Beta
+              </span>
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuCheckboxItem
             checked={topbarVisible}
             onCheckedChange={(checked) => onTopbarToggle(checked === true)}

@@ -11,15 +11,20 @@ export function AIToolbarButton(
   props: React.ComponentProps<typeof ToolbarButton>
 ) {
   const { api } = useEditorPlugin(AIChatPlugin);
+  const { onClick, onMouseDown, ...rest } = props;
 
   return (
     <ToolbarButton
-      {...props}
-      onClick={() => {
+      {...rest}
+      onClick={(event) => {
+        onClick?.(event);
         api.aiChat.show();
       }}
-      onMouseDown={(e) => {
-        e.preventDefault();
+      onMouseDown={(event) => {
+        onMouseDown?.(event);
+        event.preventDefault();
+        event.stopPropagation();
+        api.aiChat.show();
       }}
     />
   );

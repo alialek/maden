@@ -160,9 +160,13 @@ const BlockCommentContent = ({
       }
     }
 
-    if (!activeNode) return null;
+    if (!activeNode?.[0]) return null;
 
-    return editor.api.toDOMNode(activeNode[0])!;
+    try {
+      return editor.api.toDOMNode(activeNode[0])!;
+    } catch {
+      return null;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     open,

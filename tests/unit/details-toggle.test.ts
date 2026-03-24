@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Value } from 'platejs';
 
 import {
@@ -47,6 +47,29 @@ describe('details toggle conversion', () => {
     expect(output[3].type).toBe('p');
   });
 
+  it('sanitizes malformed parsed nodes without children', () => {
+    const sections = [{ type: 'markdown', content: 'ignored' }] as const;
+    const parseMarkdown = (): Value =>
+      [
+        { text: 'top-level text' },
+        { type: 'p', children: [{ text: 'ok' }] },
+        { type: 'blockquote' },
+      ] as any;
+
+    const output = materializeDetailsSections(
+      sections as unknown as Parameters<typeof materializeDetailsSections>[0],
+      parseMarkdown
+    ) as Array<{ type: string; children?: unknown[] }>;
+
+    expect(output).toHaveLength(3);
+    expect(output[0].type).toBe('p');
+    expect(Array.isArray(output[0].children)).toBe(true);
+    expect(output[1].type).toBe('p');
+    expect(Array.isArray(output[1].children)).toBe(true);
+    expect(output[2].type).toBe('blockquote');
+    expect(Array.isArray(output[2].children)).toBe(true);
+  });
+
   it('serializes toggle + indented nodes back to details/summary markdown', () => {
     const value: Value = [
       { type: 'p', children: [{ text: 'Before' }] },
@@ -72,5 +95,29 @@ describe('details toggle conversion', () => {
     expect(serialized).toContain('Row 2');
     expect(serialized).toContain('</details>');
     expect(serialized).toContain('After');
+  });
+
+  it('serializes contiguous non-toggle nodes in one markdown pass', () => {
+    const value: Value = [
+      { type: 'li', children: [{ text: 'One' }] } as any,
+      { type: 'li', children: [{ text: 'Two' }] } as any,
+      { type: 'li', children: [{ text: 'Three' }] } as any,
+    ];
+
+    const serializeMarkdown = vi.fn((nodes: Value) =>
+      nodes
+        .map((node, index) => {
+          const text = ((node as { children?: Array<{ text?: string }> }).children ?? [])
+            .map((child) => child.text ?? '')
+            .join('');
+          return `${index + 1}. ${text}`;
+        })
+        .join('\n')
+    );
+
+    const serialized = serializeDetailsSections(value, serializeMarkdown);
+
+    expect(serializeMarkdown).toHaveBeenCalledTimes(1);
+    expect(serialized).toBe('1. One\n2. Two\n3. Three\n');
   });
 });

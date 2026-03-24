@@ -57,6 +57,9 @@ npm install
 npm run build
 ```
 
+Architecture docs:
+- [AI Features Architecture Plan](./docs/ai-architecture-plan.md)
+
 Watch mode:
 
 ```bash

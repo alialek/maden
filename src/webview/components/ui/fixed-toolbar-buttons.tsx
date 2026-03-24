@@ -16,7 +16,7 @@ import {
 import { KEYS } from 'platejs';
 import { useEditorReadOnly } from 'platejs/react';
 
-import { ENABLE_AI_FEATURES } from '../../../shared/feature-flags';
+import { useAiEnabled } from '@/hooks/use-ai-enabled';
 import { AIToolbarButton } from './ai-toolbar-button';
 import { AlignToolbarButton } from './align-toolbar-button';
 import { CommentToolbarButton } from './comment-toolbar-button';
@@ -47,7 +47,7 @@ import { TurnIntoToolbarButton } from './turn-into-toolbar-button';
 
 export function FixedToolbarButtons() {
   const readOnly = useEditorReadOnly();
-  const aiEnabled = ENABLE_AI_FEATURES && window.__MADEN_AI_ENABLED__ === true;
+  const aiEnabled = useAiEnabled();
 
   return (
     <div className="maden-fixed-toolbar-buttons scrollbar-hide flex w-[calc(100%-2.75rem)] overflow-x-auto pr-2">

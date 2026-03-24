@@ -14,7 +14,7 @@ import { usePluginOption } from 'platejs/react';
 import { AILoadingBar, AIMenu } from '@/components/ui/ai-menu';
 import { AIAnchorElement, AILeaf } from '@/components/ui/ai-node';
 
-import { useChat } from '../use-chat';
+import { stripStructuredResponseWrappers, useChat } from '../use-chat';
 import { CursorOverlayKit } from './cursor-overlay-kit';
 import { MarkdownKit } from './markdown-kit';
 
@@ -58,8 +58,10 @@ export const aiChatPlugin = AIChatPlugin.extend({
             editor,
             () => {
               if (!getOption('streaming')) return;
+              const sanitizedChunk = stripStructuredResponseWrappers(chunk);
+              if (!sanitizedChunk) return;
               editor.tf.withScrolling(() => {
-                streamInsertChunk(editor, chunk, {
+                streamInsertChunk(editor, sanitizedChunk, {
                   textProps: {
                     [getPluginType(editor, KEYS.ai)]: true,
                   },
@@ -74,7 +76,7 @@ export const aiChatPlugin = AIChatPlugin.extend({
           withAIBatch(
             editor,
             () => {
-              applyAISuggestions(editor, content);
+              applyAISuggestions(editor, stripStructuredResponseWrappers(content));
             },
             {
               split: isFirst,

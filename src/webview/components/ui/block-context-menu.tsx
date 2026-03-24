@@ -33,6 +33,7 @@ export function BlockContextMenu({ children }: { children: React.ReactNode }) {
   const [readOnly] = usePlateState('readOnly');
   const openId = usePluginOption(BlockMenuPlugin, 'openId');
   const isOpen = openId === BLOCK_CONTEXT_MENU_ID;
+  const aiEnabled = ENABLE_AI_FEATURES && window.__MADEN_AI_ENABLED__ === true;
 
   const handleTurnInto = React.useCallback(
     (type: string) => {
@@ -102,7 +103,7 @@ export function BlockContextMenu({ children }: { children: React.ReactNode }) {
             e.preventDefault();
             editor.getApi(BlockSelectionPlugin).blockSelection.focus();
 
-            if (ENABLE_AI_FEATURES && value === 'askAI') {
+            if (aiEnabled && value === 'askAI') {
               editor.getApi(AIChatPlugin).aiChat.show();
             }
 
@@ -110,7 +111,7 @@ export function BlockContextMenu({ children }: { children: React.ReactNode }) {
           }}
         >
           <ContextMenuGroup>
-            {ENABLE_AI_FEATURES && (
+            {aiEnabled && (
               <ContextMenuItem
                 onClick={() => {
                   setValue('askAI');
