@@ -1,11 +1,8 @@
 import * as React from 'react';
 
-import { ENABLE_AI_FEATURES } from '../../shared/feature-flags';
-
 const AI_ENABLED_EVENT = 'maden:ai-enabled-changed';
 
-const readAiEnabled = () =>
-  ENABLE_AI_FEATURES && window.__MADEN_AI_ENABLED__ === true;
+const readAiEnabled = () => window.__MADEN_AI_ENABLED__ === true;
 
 export const dispatchAiEnabledChanged = () => {
   window.dispatchEvent(new Event(AI_ENABLED_EVENT));

@@ -11,7 +11,6 @@ import {
 import { KEYS } from 'platejs';
 import { useEditorPlugin, usePlateState, usePluginOption } from 'platejs/react';
 
-import { ENABLE_AI_FEATURES } from '../../../shared/feature-flags';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -33,7 +32,7 @@ export function BlockContextMenu({ children }: { children: React.ReactNode }) {
   const [readOnly] = usePlateState('readOnly');
   const openId = usePluginOption(BlockMenuPlugin, 'openId');
   const isOpen = openId === BLOCK_CONTEXT_MENU_ID;
-  const aiEnabled = ENABLE_AI_FEATURES && window.__MADEN_AI_ENABLED__ === true;
+  const aiEnabled = window.__MADEN_AI_ENABLED__ === true;
 
   const handleTurnInto = React.useCallback(
     (type: string) => {

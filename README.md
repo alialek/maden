@@ -41,10 +41,14 @@ Maden contributes the following settings:
 - `maden.liveWriteDebounceMs` (`number`, default: `300`, min: `50`)
   - Delay before writing editor changes back to the file.
 
+AI provider settings are managed from the editor UI and stored by the VS Code
+extension host in SecretStorage. API keys are not persisted in the webview.
+
 ## Behavior Notes
 
 - External changes (including edits from other editors/tools) are applied immediately.
-- The extension enforces first-line title heading from filename to keep document titles consistent.
+- Markdown is kept as Markdown on disk; Maden does not rewrite document titles from filenames.
+- Line endings are normalized to LF when the extension writes a document.
 
 ## Requirements
 
@@ -54,8 +58,11 @@ Maden contributes the following settings:
 
 ```bash
 npm install
-npm run build
+npm run build:extension
 ```
+
+Use `npm run build` only when you explicitly need both extension and webview
+assets rebuilt.
 
 Architecture docs:
 - [AI Features Architecture Plan](./docs/ai-architecture-plan.md)
@@ -71,6 +78,13 @@ Unit tests:
 
 ```bash
 npm run test:unit
+```
+
+Type checks:
+
+```bash
+npm run typecheck:extension
+npm run typecheck:webview
 ```
 
 ## License

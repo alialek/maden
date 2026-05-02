@@ -1,6 +1,5 @@
 import * as React from 'react';
 
-import { ENABLE_AI_FEATURES } from '../../shared/feature-flags';
 import type { HostToWebviewMessage } from '../../shared/messages';
 import { dispatchAiEnabledChanged } from './use-ai-enabled';
 
@@ -132,7 +131,7 @@ export const useWebviewDocumentState = () => {
 
   React.useEffect(() => {
     (window as Window & { __MADEN_AI_ENABLED__?: boolean }).__MADEN_AI_ENABLED__ =
-      (documentState?.aiEnabled ?? false) && ENABLE_AI_FEATURES;
+      documentState?.aiEnabled ?? false;
     dispatchAiEnabledChanged();
   }, [documentState?.aiEnabled]);
 

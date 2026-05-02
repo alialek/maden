@@ -24,6 +24,8 @@ export const aiChatPlugin = AIChatPlugin.extend({
       api: '/api/ai/command',
       body: {},
     },
+    madenAnchorPath: null,
+    madenAnchorRect: null,
   },
   render: {
     afterContainer: AILoadingBar,

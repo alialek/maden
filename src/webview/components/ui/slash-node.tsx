@@ -209,8 +209,8 @@ const groups: Group[] = [
     items: [
       {
         icon: <TableOfContentsIcon />,
-        keywords: ['toc'],
-        label: 'Table of contents',
+        keywords: ['toc', 'outline'],
+        label: 'Document outline',
         value: KEYS.toc,
       },
       {

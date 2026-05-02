@@ -8,7 +8,6 @@ import type {
   DropdownMenuProps,
 } from '@radix-ui/react-dropdown-menu';
 
-import { useComposedRef } from '@udecode/cn';
 import debounce from 'lodash/debounce.js';
 import { EraserIcon, PlusIcon } from 'lucide-react';
 import { useEditorRef, useEditorSelector } from 'platejs/react';
@@ -277,7 +276,7 @@ function ColorInput({
   className,
   value = '#000000',
   ...props
-}: React.ComponentProps<'input'>) {
+}: React.ComponentPropsWithoutRef<'input'>) {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
   return (
@@ -296,7 +295,7 @@ function ColorInput({
       })}
       <input
         {...props}
-        ref={useComposedRef(props.ref, inputRef)}
+        ref={inputRef}
         className={cn('size-0 overflow-hidden border-0 p-0', className)}
         value={value}
         type="color"

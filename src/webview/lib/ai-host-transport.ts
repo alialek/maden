@@ -81,16 +81,12 @@ const parseRequestBody = (body: string): { selectedContext: string; userPrompt: 
   }
 };
 
-const buildMockText = (route: 'command' | 'copilot', body: string): string => {
+const buildMockText = (body: string): string => {
   const { selectedContext, userPrompt } = parseRequestBody(body);
   const baseContext =
     selectedContext ||
     'This is a mock AI response in standalone browser mode. Connect from VS Code for real provider calls.';
   const normalizedPrompt = userPrompt.toLowerCase();
-
-  if (route === 'copilot') {
-    return `${baseContext}\n\nContinue by adding one concise sentence with the next logical step.`;
-  }
 
   if (normalizedPrompt.includes('improve')) {
     return `${baseContext}\n\nThe text now reads more clearly and flows better while preserving the original meaning.`;
@@ -139,15 +135,13 @@ const splitForStream = (text: string): string[] => {
 
 const createMockAiResponse = ({
   body,
-  route,
   signal,
 }: {
   body: string;
-  route: 'command' | 'copilot';
   signal?: AbortSignal;
 }) => {
   const id = requestId();
-  const text = buildMockText(route, body);
+  const text = buildMockText(body);
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const encoder = new TextEncoder();
@@ -247,13 +241,12 @@ export const requestHostAiStream = ({
   signal,
 }: {
   body: string;
-  route: 'command' | 'copilot';
+  route: 'command';
   signal?: AbortSignal;
 }) => {
   if (typeof window.acquireVsCodeApi !== 'function') {
     return createMockAiResponse({
       body,
-      route,
       signal,
     });
   }

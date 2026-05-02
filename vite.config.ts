@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
@@ -6,6 +6,7 @@ export default defineConfig(({ mode }) => {
   const isDevelopmentBuild = mode === 'development';
 
   return {
+    base: './',
     plugins: [react()],
     resolve: {
       alias: {
@@ -15,6 +16,7 @@ export default defineConfig(({ mode }) => {
     build: {
       cssMinify: !isDevelopmentBuild,
       minify: isDevelopmentBuild ? false : 'esbuild',
+      modulePreload: false,
       outDir: 'dist/webview',
       emptyOutDir: false,
       reportCompressedSize: !isDevelopmentBuild,
@@ -33,6 +35,20 @@ export default defineConfig(({ mode }) => {
             return isDevelopmentBuild
               ? 'assets/[name][extname]'
               : 'assets/[name]-[hash][extname]';
+          },
+        },
+      },
+    },
+    test: {
+      server: {
+        deps: {
+          inline: [/@platejs\/math/, /katex/],
+        },
+      },
+      deps: {
+        optimizer: {
+          ssr: {
+            include: ['@platejs/math', 'katex'],
           },
         },
       },

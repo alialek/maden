@@ -63,7 +63,7 @@ function TodoMarker(props: PlateElementProps) {
     <div contentEditable={false}>
       <Checkbox
         className={cn(
-          '-left-6 absolute top-1',
+          'maden-task-checkbox -left-6 absolute top-1',
           readOnly && 'pointer-events-none'
         )}
         {...checkboxProps}

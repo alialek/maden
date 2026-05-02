@@ -1,14 +1,16 @@
 import * as React from 'react';
 
-import { deserializeMd, serializeMd } from '@platejs/markdown';
-import { normalizeNodeId, type Value } from 'platejs';
-import { createPlateEditor, Plate, usePlateEditor } from 'platejs/react';
+import { type Value } from 'platejs';
+import { Plate, usePlateEditor } from 'platejs/react';
 import { ReactEditor } from 'slate-react';
 
-import { ENABLE_AI_FEATURES } from '../shared/feature-flags';
 import { AiSettingsDialog } from '@/components/app/ai-settings-dialog';
 import { EditorKit } from '@/components/editor/editor-kit';
 import { AppearanceMenu, type ExportActions, type FontMode } from '@/components/app/appearance-menu';
+import {
+  MadenSettingsDialog,
+  type MadenThemeMode,
+} from '@/components/app/maden-settings-dialog';
 import { Editor, EditorContainer } from '@/components/ui/editor';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -23,298 +25,32 @@ import {
   saveExportFile,
 } from '@/lib/export';
 import {
-  materializeDetailsSections,
-  serializeDetailsSections,
-  splitMarkdownByDetails,
-} from '@/lib/details-toggle';
-import { normalizeOpenDocumentMarkdown } from '@/lib/markdown-open-normalize';
+  EMPTY_VALUE,
+  canonicalizeMarkdown,
+  deserializeMarkdownToPlateValue,
+  normalizeClipboardMarkdown,
+  normalizeLineEndings,
+  serializePlateValueToMarkdown,
+} from '@/lib/markdown-plate-conversion';
 import { postToHost } from '@/vscode';
-
-const EMPTY_VALUE: Value = [
-  {
-    children: [{ text: '' }],
-    type: 'p',
-  },
-];
 
 const TOPBAR_STORAGE_KEY = 'maden.ui.topbarVisible';
 const FONT_MODE_STORAGE_KEY = 'maden.ui.fontMode';
 const WIDE_MODE_STORAGE_KEY = 'maden.ui.wideMode';
-const normalizeLineEndings = (value: string) => value.replace(/\r\n/g, '\n');
-const canonicalizeMarkdown = (value: string) => normalizeLineEndings(value).trimEnd();
-const normalizeClipboardMarkdown = (value: string) =>
-  normalizeLineEndings(value).replace(/\n{3,}/g, '\n\n').trimEnd();
+const THEME_STORAGE_KEY = 'maden.ui.theme';
 
-const toTextLeaf = (value: unknown): { text: string } => {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    const candidate = value as { text?: unknown };
-    if (typeof candidate.text === 'string') {
-      return { text: candidate.text };
-    }
+const readStoredThemeMode = (): MadenThemeMode => {
+  if (typeof window === 'undefined') {
+    return 'inherit';
   }
 
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    return { text: String(value) };
-  }
-
-  return { text: '' };
-};
-
-type SanitizeStats = {
-  repairedExamples: string[];
-  repairedNodes: number;
-  repairedWithoutChildren: number;
-  repairedNonObject: number;
-  repairedMissingType: number;
-  repairedTableStructure: number;
-};
-
-const emptySanitizeStats = (): SanitizeStats => ({
-  repairedExamples: [],
-  repairedNodes: 0,
-  repairedWithoutChildren: 0,
-  repairedNonObject: 0,
-  repairedMissingType: 0,
-  repairedTableStructure: 0,
-});
-
-const pushRepairExample = (stats: SanitizeStats | undefined, example: string) => {
-  if (!stats) return;
-  if (stats.repairedExamples.length >= 8) return;
-  stats.repairedExamples.push(example);
-};
-
-const sanitizeSlateNode = (
-  node: unknown,
-  topLevel = true,
-  stats?: SanitizeStats,
-  path = 'root'
-): { text: string } | { type: string; children: Array<{ text: string } | { type: string; children: unknown[] }> } => {
-  if (node && typeof node === 'object' && !Array.isArray(node)) {
-    const candidate = node as { text?: unknown; children?: unknown; type?: unknown };
-    const candidateType = typeof candidate.type === 'string' ? candidate.type : undefined;
-    if (Array.isArray(candidate.children)) {
-      if (!candidateType && stats) {
-        stats.repairedNodes += 1;
-        stats.repairedMissingType += 1;
-        pushRepairExample(stats, `${path}:missing-type`);
-      }
-      return {
-        ...(candidate as Record<string, unknown>),
-        type: candidateType ?? 'p',
-        children:
-          candidate.children.length > 0
-            ? candidate.children.map((child, index) =>
-                sanitizeSlateNode(child, false, stats, `${path}.children[${index}]`)
-              )
-            : [{ text: '' }],
-      } as { type: string; children: Array<{ text: string } | { type: string; children: unknown[] }> };
-    }
-
-    if (typeof candidate.text === 'string') {
-      if (!topLevel) {
-        return { text: candidate.text };
-      }
-
-      return {
-        type: 'p',
-        children: [{ text: candidate.text }],
-      };
-    }
-
-    if (candidateType) {
-      if (stats) {
-        stats.repairedNodes += 1;
-        stats.repairedWithoutChildren += 1;
-        pushRepairExample(stats, `${path}:${candidateType}:missing-children`);
-      }
-      return {
-        ...(candidate as Record<string, unknown>),
-        type: candidateType,
-        children: [{ text: '' }],
-      };
-    }
-  }
-
-  if (!topLevel) {
-    if (stats) {
-      stats.repairedNodes += 1;
-      stats.repairedNonObject += 1;
-      pushRepairExample(stats, `${path}:leaf-from-non-object`);
-    }
-    return toTextLeaf(node);
-  }
-
-  if (stats) {
-    stats.repairedNodes += 1;
-    stats.repairedNonObject += 1;
-    pushRepairExample(stats, `${path}:paragraph-from-non-object`);
-  }
-  return {
-    type: 'p',
-    children: [toTextLeaf(node)],
-  };
-};
-
-type SlateLeaf = { text: string };
-type SlateElement = { type: string; children: Array<SlateLeaf | SlateElement> } & Record<string, unknown>;
-type SlateNode = SlateLeaf | SlateElement;
-
-const isSlateLeaf = (node: unknown): node is SlateLeaf =>
-  !!node &&
-  typeof node === 'object' &&
-  !Array.isArray(node) &&
-  typeof (node as { text?: unknown }).text === 'string' &&
-  !Array.isArray((node as { children?: unknown }).children);
-
-const isSlateElement = (node: unknown): node is SlateElement =>
-  !!node &&
-  typeof node === 'object' &&
-  !Array.isArray(node) &&
-  typeof (node as { type?: unknown }).type === 'string' &&
-  Array.isArray((node as { children?: unknown }).children);
-
-const nodeText = (node: SlateNode): string => {
-  if (isSlateLeaf(node)) {
-    return node.text;
-  }
-
-  return node.children.map((child) => nodeText(child as SlateNode)).join('');
-};
-
-const paragraphFromText = (text = ''): SlateElement => ({
-  children: [{ text }],
-  type: 'p',
-});
-
-const tableCellFromText = (text = ''): SlateElement => ({
-  children: [paragraphFromText(text)],
-  type: 'td',
-});
-
-const tableRowFromText = (text = ''): SlateElement => ({
-  children: [tableCellFromText(text)],
-  type: 'tr',
-});
-
-const normalizeTableStructureNode = (node: SlateNode, stats: SanitizeStats, path: string): SlateNode => {
-  if (isSlateLeaf(node)) {
-    return node;
-  }
-
-  let children = node.children.map((child, index) =>
-    normalizeTableStructureNode(child as SlateNode, stats, `${path}.children[${index}]`)
-  ) as Array<SlateLeaf | SlateElement>;
-
-  if (node.type === 'table') {
-    children = children.map((child, index) => {
-      if (isSlateElement(child) && child.type === 'tr') {
-        return child;
-      }
-      stats.repairedNodes += 1;
-      stats.repairedTableStructure += 1;
-      pushRepairExample(stats, `${path}.children[${index}]:table-child->tr`);
-      return tableRowFromText(nodeText(child as SlateNode));
-    });
-
-    if (children.length === 0) {
-      stats.repairedNodes += 1;
-      stats.repairedTableStructure += 1;
-      pushRepairExample(stats, `${path}:table-empty->default-row`);
-      children = [tableRowFromText('')];
-    }
-  } else if (node.type === 'tr') {
-    children = children.map((child, index) => {
-      if (isSlateElement(child) && (child.type === 'td' || child.type === 'th')) {
-        return child;
-      }
-      stats.repairedNodes += 1;
-      stats.repairedTableStructure += 1;
-      pushRepairExample(stats, `${path}.children[${index}]:tr-child->td`);
-      return tableCellFromText(nodeText(child as SlateNode));
-    });
-
-    if (children.length === 0) {
-      stats.repairedNodes += 1;
-      stats.repairedTableStructure += 1;
-      pushRepairExample(stats, `${path}:tr-empty->default-cell`);
-      children = [tableCellFromText('')];
-    }
-  } else if (node.type === 'td' || node.type === 'th') {
-    children = children.map((child, index) => {
-      if (isSlateElement(child)) {
-        return child;
-      }
-      stats.repairedNodes += 1;
-      stats.repairedTableStructure += 1;
-      pushRepairExample(stats, `${path}.children[${index}]:cell-leaf->paragraph`);
-      return paragraphFromText(nodeText(child as SlateNode));
-    });
-
-    if (children.length === 0) {
-      stats.repairedNodes += 1;
-      stats.repairedTableStructure += 1;
-      pushRepairExample(stats, `${path}:cell-empty->paragraph`);
-      children = [paragraphFromText('')];
-    }
-  }
-
-  return {
-    ...node,
-    children,
-  };
-};
-
-const sanitizeEditorValue = (value: Value): { value: Value; stats: SanitizeStats } => {
-  const stats = emptySanitizeStats();
-  const sanitized = value.map((node, index) =>
-    sanitizeSlateNode(node, true, stats, `root[${index}]`) as Value[number]
-  );
-
-  const tableSafe = sanitized.map((node, index) =>
-    normalizeTableStructureNode(node as unknown as SlateNode, stats, `root[${index}]`)
-  ) as Value;
-
-  return { stats, value: tableSafe };
-};
-
-const getPlugins = (): typeof EditorKit => EditorKit;
-
-const deserializeMarkdown = (markdown: string, plugins: typeof EditorKit) => {
-  const parserEditor = createPlateEditor({
-    plugins,
-    value: EMPTY_VALUE,
-  });
-
-  try {
-    const normalized = normalizeOpenDocumentMarkdown(markdown);
-    const sections = splitMarkdownByDetails(normalized);
-    const value = materializeDetailsSections(
-      sections,
-      (source) => deserializeMd(parserEditor, source) as Value
-    );
-    const sanitized = sanitizeEditorValue(value);
-
-    return normalizeNodeId(sanitized.value);
-  } catch (error) {
-    postToHost({
-      type: 'webviewError',
-      message: 'Failed to deserialize normalized markdown; retrying with raw markdown',
-      stack: error instanceof Error ? error.stack : String(error),
-    });
-
-    try {
-      const sanitized = sanitizeEditorValue(deserializeMd(parserEditor, markdown) as Value);
-      return normalizeNodeId(sanitized.value);
-    } catch (rawError) {
-      postToHost({
-        type: 'webviewError',
-        message: 'Failed to deserialize raw markdown during document load',
-        stack: rawError instanceof Error ? rawError.stack : String(rawError),
-      });
-      return EMPTY_VALUE;
-    }
-  }
+  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+  return storedTheme === 'light' ||
+    storedTheme === 'dark' ||
+    storedTheme === 'inherit' ||
+    storedTheme === 'confluence'
+    ? storedTheme
+    : 'inherit';
 };
 
 function MarkdownEditor({
@@ -325,17 +61,16 @@ function MarkdownEditor({
   documentState: {
     aiEnabled: boolean;
     fileName: string;
+    filePath: string;
     markdown: string;
     readOnly: boolean;
   };
   onExportActionsChange: (actions: ExportActions | null) => void;
   wideMode: boolean;
 }) {
-  const plugins = React.useMemo(() => getPlugins(), []);
-
   const editor = usePlateEditor(
     {
-      plugins,
+      plugins: EditorKit,
       readOnly: documentState.readOnly,
       value: EMPTY_VALUE,
     },
@@ -358,12 +93,9 @@ function MarkdownEditor({
     }
 
     try {
-      const currentMarkdown = normalizeLineEndings(
-        serializeDetailsSections(editor.children as Value, (value) =>
-          serializeMd(editor as never, {
-            value,
-          })
-        )
+      const currentMarkdown = serializePlateValueToMarkdown(
+        editor as never,
+        editor.children as Value
       );
 
       if (canonicalizeMarkdown(currentMarkdown) === canonicalIncomingMarkdown) {
@@ -388,7 +120,17 @@ function MarkdownEditor({
       return;
     }
 
-    const nextValue = deserializeMarkdown(incomingMarkdown, plugins);
+    const nextValue = deserializeMarkdownToPlateValue(incomingMarkdown, {
+      context: {
+        fileName: documentState.fileName,
+        filePath: documentState.filePath,
+      },
+      onHostError: (error) =>
+        postToHost({
+          type: 'webviewError',
+          ...error,
+        }),
+    }).value;
 
     isApplyingRemoteChangeRef.current = true;
     editor.tf.withoutSaving(() => {
@@ -396,13 +138,7 @@ function MarkdownEditor({
     });
 
     try {
-      lastSyncedMarkdownRef.current = normalizeLineEndings(
-        serializeDetailsSections(nextValue, (value) =>
-          serializeMd(editor, {
-            value,
-          })
-        )
-      );
+      lastSyncedMarkdownRef.current = serializePlateValueToMarkdown(editor, nextValue);
     } catch {
       lastSyncedMarkdownRef.current = '';
     }
@@ -410,7 +146,7 @@ function MarkdownEditor({
     queueMicrotask(() => {
       isApplyingRemoteChangeRef.current = false;
     });
-  }, [documentState.markdown, editor, plugins]);
+  }, [documentState.fileName, documentState.filePath, documentState.markdown, editor]);
 
   const onValueChange = React.useCallback(
     ({ editor, value }: { editor: { children: Value }; value: Value }) => {
@@ -421,13 +157,7 @@ function MarkdownEditor({
       let markdown = '';
 
       try {
-        markdown = normalizeLineEndings(
-          serializeDetailsSections(value, (currentValue) =>
-            serializeMd(editor as never, {
-              value: currentValue,
-            })
-          )
-        );
+        markdown = serializePlateValueToMarkdown(editor as never, value);
       } catch {
         markdown = '';
       }
@@ -461,7 +191,7 @@ function MarkdownEditor({
       }
 
       const markdown = normalizeClipboardMarkdown(
-        serializeMd(editor as never, { value: fragment as never })
+        serializePlateValueToMarkdown(editor as never, fragment as Value)
       );
 
       if (!markdown) {
@@ -498,6 +228,7 @@ function MarkdownEditor({
           <EditorContainer variant="default">
             <Editor
               autoFocus
+              className="page-content"
               onCopy={onCopy}
               variant={wideMode ? 'fullWidth' : 'default'}
             />
@@ -513,8 +244,11 @@ export function App() {
   const { save: saveAiSettings, settings: aiSettings } = useAiSettings();
 
   const [aiSettingsOpen, setAiSettingsOpen] = React.useState(false);
+  const [madenSettingsOpen, setMadenSettingsOpen] = React.useState(false);
   const [topbarVisible, setTopbarVisible] = React.useState(true);
   const [fontMode, setFontMode] = React.useState<FontMode>('default');
+  const [themeMode, setThemeMode] =
+    React.useState<MadenThemeMode>(readStoredThemeMode);
   const [wideModeEnabled, setWideModeEnabled] = React.useState(false);
   const [exportActions, setExportActions] = React.useState<ExportActions | null>(null);
 
@@ -546,6 +280,15 @@ export function App() {
       window.removeEventListener('unhandledrejection', onUnhandledRejection);
     };
   }, []);
+
+  React.useEffect(() => {
+    document.body.dataset.madenTheme = themeMode;
+    document.body.classList.toggle('dark', themeMode === 'dark');
+  }, [themeMode]);
+
+  React.useEffect(() => {
+    document.body.dataset.madenWideMode = wideModeEnabled ? 'enabled' : 'disabled';
+  }, [wideModeEnabled]);
 
   React.useEffect(() => {
     const storedTopbar = window.localStorage.getItem(TOPBAR_STORAGE_KEY);
@@ -580,6 +323,7 @@ export function App() {
         data-file-name={documentState.fileName}
         data-maden-topbar={topbarVisible ? 'visible' : 'hidden'}
         data-maden-font={fontMode}
+        data-maden-wide-mode={wideModeEnabled ? 'enabled' : 'disabled'}
       >
         <ErrorBoundary label="Appearance menu">
           <AppearanceMenu
@@ -587,10 +331,10 @@ export function App() {
             topbarVisible={topbarVisible}
             wideModeEnabled={wideModeEnabled}
             onOpenAiSettings={() => {
-              if (!ENABLE_AI_FEATURES) {
-                return;
-              }
               setAiSettingsOpen(true);
+            }}
+            onOpenMadenSettings={() => {
+              setMadenSettingsOpen(true);
             }}
             onTopbarToggle={(next) => {
               setTopbarVisible(next);
@@ -616,14 +360,22 @@ export function App() {
           />
         </ErrorBoundary>
 
-        {ENABLE_AI_FEATURES && (
-          <AiSettingsDialog
-            open={aiSettingsOpen}
-            settings={aiSettings}
-            onOpenChange={setAiSettingsOpen}
-            onSave={saveAiSettings}
-          />
-        )}
+        <AiSettingsDialog
+          open={aiSettingsOpen}
+          settings={aiSettings}
+          onOpenChange={setAiSettingsOpen}
+          onSave={saveAiSettings}
+        />
+
+        <MadenSettingsDialog
+          open={madenSettingsOpen}
+          themeMode={themeMode}
+          onOpenChange={setMadenSettingsOpen}
+          onSave={(next) => {
+            setThemeMode(next);
+            window.localStorage.setItem(THEME_STORAGE_KEY, next);
+          }}
+        />
       </div>
     </TooltipProvider>
   );

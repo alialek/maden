@@ -1,8 +1,8 @@
 {
   "name": "maden",
-  "displayName": "Maden - md editor in Notion style",
+  "displayName": "Maden - editor for .md files, Skills, Agents in Notion style",
   "description": "Notion-like Markdown editor for VS Code",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "private": true,
   "publisher": "alialek",
   "icon": "icon.png",
@@ -38,11 +38,6 @@
     "configuration": {
       "title": "Maden",
       "properties": {
-        "maden.ai.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable AI actions in the Plate editor."
-        },
         "maden.liveWriteDebounceMs": {
           "type": "number",
           "default": 300,
@@ -61,18 +56,19 @@
     "watch:extension": "tsc -w -p tsconfig.extension.json --pretty false",
     "watch:webview": "vite build --watch --mode development",
     "dev:webview": "vite",
+    "debug:markdown": "node scripts/debug-markdown.mjs",
+    "debug:plate": "node scripts/debug-plate.mjs",
     "typecheck": "npm run typecheck:extension && npm run typecheck:webview",
     "typecheck:extension": "tsc -p tsconfig.extension.json --noEmit --pretty false",
     "typecheck:webview": "tsc -p tsconfig.json --noEmit --pretty false",
     "test": "npm run test:unit",
-    "test:unit": "vitest run",
+    "test:unit": "vitest run tests/unit",
     "vscode:prepublish": "npm run build"
   },
   "dependencies": {
     "@ai-sdk/react": "^2.0.28",
     "@ariakit/react": "^0.4.22",
     "@emoji-mart/data": "^1.2.1",
-    "@faker-js/faker": "^10.3.0",
     "@fontsource-variable/geist": "^5.2.8",
     "@platejs/ai": "^52.3.1",
     "@platejs/autoformat": "^52.0.11",

@@ -4,11 +4,13 @@ export type AiProviderId =
   | 'gemini'
   | 'openrouter'
   | 'codex-cli'
+  | 'qwen-cli'
+  | 'gigachat-cli'
   | 'gigachat-openai-compatible'
   | 'gigachat-native'
   | 'gigachat';
 
-export type AiRequestRoute = 'command' | 'copilot';
+export type AiRequestRoute = 'command';
 
 export type GigaChatMode = 'native' | 'openaiCompatible';
 
@@ -94,6 +96,9 @@ export type WebviewToHostMessage =
     base64: string;
     mimeType: string;
     suggestedFileName: string;
+  }
+  | {
+    type: 'openSourceView';
   }
   | {
     type: 'webviewError';

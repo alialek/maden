@@ -6,6 +6,7 @@ import { BaseCodeBlockKit } from './plugins/code-block-base-kit';
 import { BaseColumnKit } from './plugins/column-base-kit';
 import { BaseCommentKit } from './plugins/comment-base-kit';
 import { BaseDateKit } from './plugins/date-base-kit';
+import { BaseExcalidrawKit } from './plugins/excalidraw-base-kit';
 import { BaseFontKit } from './plugins/font-base-kit';
 import { BaseLineHeightKit } from './plugins/line-height-base-kit';
 import { BaseLinkKit } from './plugins/link-base-kit';
@@ -22,6 +23,7 @@ import { BaseToggleKit } from './plugins/toggle-base-kit';
 export const BaseEditorKit = [
   ...BaseBasicBlocksKit,
   ...BaseCodeBlockKit,
+  ...BaseExcalidrawKit,
   ...BaseTableKit,
   ...BaseToggleKit,
   ...BaseTocKit,

@@ -1,6 +1,7 @@
 dist/
 coverage/
 .vitest/
+.maden-debug/
 *.log
 node_modules
 *.vsix

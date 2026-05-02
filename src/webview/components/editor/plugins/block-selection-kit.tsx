@@ -4,7 +4,6 @@ import { AIChatPlugin } from '@platejs/ai/react';
 import { BlockSelectionPlugin } from '@platejs/selection/react';
 import { getPluginTypes, isHotkey, KEYS } from 'platejs';
 
-import { ENABLE_AI_FEATURES } from '../../../../shared/feature-flags';
 import { BlockSelection } from '@/components/ui/block-selection';
 
 export const BlockSelectionKit = [
@@ -16,7 +15,7 @@ export const BlockSelectionKit = [
           element.type
         ),
       onKeyDownSelecting: (editor, e) => {
-        const aiEnabled = ENABLE_AI_FEATURES && window.__MADEN_AI_ENABLED__ === true;
+        const aiEnabled = window.__MADEN_AI_ENABLED__ === true;
 
         if (aiEnabled && isHotkey('mod+j')(e)) {
           editor.getApi(AIChatPlugin).aiChat.show();

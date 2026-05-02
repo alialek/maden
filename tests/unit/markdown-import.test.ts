@@ -27,4 +27,12 @@ describe('normalizeImportedMarkdown', () => {
       '![banner](<https://example.com/banner.png>)'
     );
   });
+
+  it('escapes plain markdown placeholders without normalizing unrelated text', () => {
+    const source = '# US.1 <Наименование USER STORY>\r\n\r\nplain text';
+
+    expect(normalizeImportedMarkdown(source)).toBe(
+      '# US.1 &lt;Наименование USER STORY&gt;\r\n\r\nplain text'
+    );
+  });
 });

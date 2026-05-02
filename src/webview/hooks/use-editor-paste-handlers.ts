@@ -6,8 +6,6 @@ import type { PlateEditor } from 'platejs/react';
 
 import { normalizeImportedMarkdown } from '@/lib/markdown-import';
 
-const hasHtmlLikeMarkdown = (value: string) => /<(?:p|a|img|br|strong|b|em|i)\b/i.test(value);
-
 export const useEditorPasteHandlers = (editor: PlateEditor) => {
   React.useEffect(() => {
     const getEditorElement = (): HTMLElement | null => {
@@ -21,7 +19,7 @@ export const useEditorPasteHandlers = (editor: PlateEditor) => {
     const onPaste = (event: ClipboardEvent) => {
       const clipboard = event.clipboardData;
       const plainText = clipboard?.getData('text/plain') ?? '';
-      if (!plainText || !hasHtmlLikeMarkdown(plainText)) return;
+      if (!plainText) return;
 
       const normalized = normalizeImportedMarkdown(plainText);
       if (normalized === plainText) return;
@@ -57,4 +55,3 @@ export const useEditorPasteHandlers = (editor: PlateEditor) => {
     };
   }, [editor]);
 };
-

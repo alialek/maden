@@ -1,3 +1,5 @@
+import { escapeMarkdownPlaceholderAngles } from '@/lib/markdown-open-normalize';
+
 const normalizeLineEndings = (value: string) => value.replace(/\r\n/g, '\n');
 
 const getHtmlAttribute = (tag: string, attribute: string): string | null => {
@@ -120,7 +122,7 @@ const normalizeHtmlMarkdownSegment = (segment: string): string => {
 export const normalizeImportedMarkdown = (markdown: string): string => {
   const normalized = normalizeLineEndings(markdown);
   if (!/<(?:p|a|img|br|strong|b|em|i)\b/i.test(normalized)) {
-    return normalized;
+    return escapeMarkdownPlaceholderAngles(markdown);
   }
   const codeFenceRegex = /```[\s\S]*?```/g;
   let result = '';
@@ -134,5 +136,5 @@ export const normalizeImportedMarkdown = (markdown: string): string => {
   }
 
   result += normalizeHtmlMarkdownSegment(normalized.slice(lastIndex));
-  return result.replace(/\n{3,}/g, '\n\n');
+  return escapeMarkdownPlaceholderAngles(result.replace(/\n{3,}/g, '\n\n'));
 };

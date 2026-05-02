@@ -94,4 +94,88 @@ describe('reconcileMarkdownPreservingUnchangedFormatting', () => {
     expect(reconciled).toContain('Tail new');
     expect(reconciled).not.toContain('***');
   });
+
+  it('preserves original markdown when Plate only normalizes formatting noise', () => {
+    const previous = [
+      '---',
+      '',
+      '- [link](#target)',
+      '  - nested',
+      '',
+      '|  |  |',
+      '| --- | --- |',
+      '| *Пример:* <br> * https://example.com | [Требования <Продукт>] |',
+      '',
+      '**1.1. Цель**',
+      'Что писать:',
+      '',
+    ].join('\n');
+
+    const next = [
+      '***',
+      '',
+      '* [link](#target)',
+      '',
+      '  * nested',
+      '',
+      '| ​ | ​ |',
+      '| ---------------- | ---------------- |',
+      '| _Пример:_ <br/> \\* [https://example.com](https://example.com) | \\[Требования <Продукт>] |',
+      '',
+      '**1.1. Цель**\\',
+      'Что писать:',
+      '',
+    ].join('\n');
+
+    expect(reconcileMarkdownPreservingUnchangedFormatting(previous, next)).toBe(previous);
+  });
+
+  it('keeps actual content edits while preserving unchanged surrounding formatting', () => {
+    const previous = [
+      '---',
+      '',
+      '| Поле | Описание |',
+      '| --- | --- |',
+      '| id | Старое описание |',
+      '',
+    ].join('\n');
+
+    const next = [
+      '***',
+      '',
+      '| Поле | Описание |',
+      '| ----- | -------- |',
+      '| id | Новое описание |',
+      '',
+    ].join('\n');
+
+    const reconciled = reconcileMarkdownPreservingUnchangedFormatting(previous, next);
+
+    expect(reconciled).toContain('---');
+    expect(reconciled).toContain('| id | Новое описание |');
+    expect(reconciled).not.toContain('***');
+  });
+
+  it('does not drop closing code fences when inserting a diagram before existing content', () => {
+    const previous = ['# note', '', 'Content below diagram', ''].join('\n');
+    const next = [
+      '# note',
+      '',
+      '```mermaid',
+      'sequenceDiagram',
+      '    participant Client',
+      '    participant Server',
+      '    Client->>Server: Request data',
+      '```',
+      '',
+      'Content below diagram',
+      '',
+    ].join('\n');
+
+    const reconciled = reconcileMarkdownPreservingUnchangedFormatting(previous, next);
+
+    expect(reconciled).toContain('```mermaid\nsequenceDiagram');
+    expect(reconciled).toContain('Client->>Server: Request data\n```');
+    expect(reconciled).toContain('```\n\nContent below diagram');
+  });
 });

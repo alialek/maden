@@ -40,10 +40,19 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  CODE_DRAWING_PRESETS,
+  canReplaceCodeDrawingCodeWithPreset,
+  getCodeDrawingPresetByValue,
+  getCodeDrawingPresetValue,
+} from '@/lib/code-drawing-presets';
 
 function useCodeDrawingElement({ element }: { element: TCodeDrawingElement }) {
   const editor = useEditorRef();
@@ -176,6 +185,29 @@ export function CodeDrawingElement(
     [editor, element]
   );
 
+  const handlePresetSelect = React.useCallback(
+    (preset: (typeof CODE_DRAWING_PRESETS)[number]) => {
+      const path = editor.api.findPath(element);
+      if (!path) return;
+
+      const shouldReplaceCode = canReplaceCodeDrawingCodeWithPreset(
+        element.data?.code ?? ''
+      );
+
+      editor.tf.setNodes(
+        {
+          data: {
+            ...element.data,
+            drawingType: preset.drawingType,
+            ...(shouldReplaceCode ? { code: preset.code } : {}),
+          },
+        },
+        { at: path }
+      );
+    },
+    [editor, element]
+  );
+
   const handleDrawingModeChange = React.useCallback(
     (drawingMode: ViewMode) => {
       const path = editor.api.findPath(element);
@@ -216,11 +248,13 @@ export function CodeDrawingElement(
           loading={loading}
           onCodeChange={handleCodeChange}
           onDrawingTypeChange={handleDrawingTypeChange}
+          onPresetSelect={handlePresetSelect}
           onDrawingModeChange={handleDrawingModeChange}
           readOnly={readOnly}
           isMobile={isMobile}
         />
       </div>
+      {props.children}
     </PlateElement>
   );
 
@@ -271,6 +305,7 @@ function CodeDrawingPreview({
   loading,
   onCodeChange,
   onDrawingTypeChange,
+  onPresetSelect,
   onDrawingModeChange,
   readOnly = false,
   isMobile = false,
@@ -282,6 +317,7 @@ function CodeDrawingPreview({
   loading: boolean;
   onCodeChange: (code: string) => void;
   onDrawingTypeChange: (type: CodeDrawingType) => void;
+  onPresetSelect: (preset: (typeof CODE_DRAWING_PRESETS)[number]) => void;
   onDrawingModeChange: (mode: ViewMode) => void;
   readOnly?: boolean;
   isMobile?: boolean;
@@ -304,6 +340,7 @@ function CodeDrawingPreview({
       readOnly={readOnly}
       isMobile={isMobile}
       onDrawingTypeChange={onDrawingTypeChange}
+      onPresetSelect={onPresetSelect}
       onDrawingModeChange={onDrawingModeChange}
     />
   );
@@ -349,6 +386,7 @@ function CodeDrawingToolbar({
   readOnly = false,
   isMobile = false,
   onDrawingTypeChange,
+  onPresetSelect,
   onDrawingModeChange,
 }: {
   drawingType: CodeDrawingType;
@@ -356,6 +394,7 @@ function CodeDrawingToolbar({
   readOnly?: boolean;
   isMobile?: boolean;
   onDrawingTypeChange: (type: CodeDrawingType) => void;
+  onPresetSelect: (preset: (typeof CODE_DRAWING_PRESETS)[number]) => void;
   onDrawingModeChange: (mode: ViewMode) => void;
 }) {
   const [toolbarVisible, setToolbarVisible] = React.useState(false);
@@ -385,7 +424,16 @@ function CodeDrawingToolbar({
       {!readOnly && (
         <Select
           value={drawingType}
-          onValueChange={onDrawingTypeChange}
+          onValueChange={(value) => {
+            const preset = getCodeDrawingPresetByValue(value);
+
+            if (preset) {
+              onPresetSelect(preset);
+              return;
+            }
+
+            onDrawingTypeChange(value as CodeDrawingType);
+          }}
           open={languageSelectOpen}
           onOpenChange={setLanguageSelectOpen}
         >
@@ -397,11 +445,26 @@ function CodeDrawingToolbar({
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="z-[100]">
-            {CODE_DRAWING_TYPE_ARRAY.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
+            <SelectGroup>
+              <SelectLabel>Types</SelectLabel>
+              {CODE_DRAWING_TYPE_ARRAY.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+            <SelectSeparator />
+            <SelectGroup>
+              <SelectLabel>Presets</SelectLabel>
+              {CODE_DRAWING_PRESETS.map((preset) => (
+                <SelectItem
+                  key={preset.id}
+                  value={getCodeDrawingPresetValue(preset)}
+                >
+                  {preset.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
           </SelectContent>
         </Select>
       )}
@@ -499,7 +562,7 @@ function CodeDrawingTextarea({
           }
           style={{ minHeight: `${DEFAULT_MIN_HEIGHT}px`, height: '100%' }}
         >
-          <code className="block h-full w-full">
+          <code className="maden-code-drawing-code block h-full w-full">
             <textarea
               ref={textareaRef}
               value={internalCode}

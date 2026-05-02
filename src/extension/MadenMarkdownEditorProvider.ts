@@ -7,8 +7,20 @@ import {
   DEFAULT_DEBOUNCE_MS,
   enforceTitleHeading,
   getFileNameWithoutExtension,
+  reconcileMarkdownPreservingUnchangedFormatting,
 } from './markdownUtils';
+import {
+  extractLatestUserContent,
+  extractTextDeltaFromSseChunk,
+  formatAiRequestBody,
+  summarizeAiRequest,
+} from './services/ai-logging';
 import { AiRuntimeService } from './services/ai-runtime';
+import {
+  postAiEnabledToAllPanels,
+  postToDocumentPanels,
+  postToOtherDocumentPanels,
+} from './services/document-panel-messages';
 import { createDocumentSession, createStateMessage } from './services/document-session';
 import { getWebviewHtml } from './services/webview-html';
 
@@ -75,163 +87,6 @@ export class MadenMarkdownEditorProvider
     runtime.writeTimer = undefined;
   }
 
-  private summarizeAiRequest(body: string): string {
-    try {
-      const parsed = JSON.parse(body) as {
-        messages?: unknown;
-        model?: unknown;
-        provider?: unknown;
-        selectedContext?: unknown;
-      };
-
-      const messages = Array.isArray(parsed.messages) ? parsed.messages : [];
-      const lastUserMessage = [...messages]
-        .reverse()
-        .find((message) => {
-          if (!message || typeof message !== 'object') {
-            return false;
-          }
-          const role = (message as { role?: unknown }).role;
-          return role === 'user';
-        }) as
-        | {
-          content?: unknown;
-          parts?: unknown;
-        }
-        | undefined;
-
-      const readText = (value: unknown): string => {
-        if (typeof value === 'string') {
-          return value;
-        }
-        if (!Array.isArray(value)) {
-          return '';
-        }
-        return value
-          .map((part) => {
-            if (typeof part === 'string') {
-              return part;
-            }
-            if (!part || typeof part !== 'object') {
-              return '';
-            }
-            const text = (part as { text?: unknown; content?: unknown }).text;
-            if (typeof text === 'string') {
-              return text;
-            }
-            const content = (part as { text?: unknown; content?: unknown }).content;
-            return typeof content === 'string' ? content : '';
-          })
-          .filter(Boolean)
-          .join('\n');
-      };
-
-      const userPreview = readText(lastUserMessage?.content ?? lastUserMessage?.parts)
-        .replace(/\s+/g, ' ')
-        .slice(0, 180);
-
-      const provider =
-        typeof parsed.provider === 'string' ? parsed.provider : 'default';
-      const model = typeof parsed.model === 'string' ? parsed.model : 'default';
-      const selectedContextLength =
-        typeof parsed.selectedContext === 'string' ? parsed.selectedContext.length : 0;
-
-      return `provider=${provider} model=${model} messages=${messages.length} selectedContextLen=${selectedContextLength} userPreview="${userPreview}"`;
-    } catch {
-      return `invalid-json bodyLen=${body.length}`;
-    }
-  }
-
-  private extractLatestUserContent(body: string): string {
-    try {
-      const parsed = JSON.parse(body) as {
-        messages?: unknown;
-      };
-      const messages = Array.isArray(parsed.messages) ? parsed.messages : [];
-      const lastUserMessage = [...messages]
-        .reverse()
-        .find((message) => {
-          if (!message || typeof message !== 'object') {
-            return false;
-          }
-          const role = (message as { role?: unknown }).role;
-          return role === 'user';
-        }) as
-        | {
-          content?: unknown;
-          parts?: unknown;
-        }
-        | undefined;
-
-      const readText = (value: unknown): string => {
-        if (typeof value === 'string') {
-          return value;
-        }
-        if (!Array.isArray(value)) {
-          return '';
-        }
-        return value
-          .map((part) => {
-            if (typeof part === 'string') {
-              return part;
-            }
-            if (!part || typeof part !== 'object') {
-              return '';
-            }
-            const text = (part as { text?: unknown; content?: unknown }).text;
-            if (typeof text === 'string') {
-              return text;
-            }
-            const content = (part as { text?: unknown; content?: unknown }).content;
-            return typeof content === 'string' ? content : '';
-          })
-          .filter(Boolean)
-          .join('\n');
-      };
-
-      return readText(lastUserMessage?.content ?? lastUserMessage?.parts).trim();
-    } catch {
-      return '';
-    }
-  }
-
-  private formatAiRequestBody(body: string): string {
-    try {
-      const parsed = JSON.parse(body);
-      return JSON.stringify(parsed, null, 2);
-    } catch {
-      return body;
-    }
-  }
-
-  private extractTextDeltaFromSseChunk(chunk: string): string {
-    const normalized = chunk.replace(/\r\n/g, '\n');
-    const lines = normalized.split('\n');
-    let text = '';
-
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) {
-        continue;
-      }
-
-      const payload = line.slice('data: '.length).trim();
-      if (!payload || payload === '[DONE]') {
-        continue;
-      }
-
-      try {
-        const parsed = JSON.parse(payload) as { type?: unknown; delta?: unknown };
-        if (parsed.type === 'text-delta' && typeof parsed.delta === 'string') {
-          text += parsed.delta;
-        }
-      } catch {
-        // Ignore non-JSON lines.
-      }
-    }
-
-    return text;
-  }
-
   private async flushPendingMarkdownForDocument(
     documentUri: vscode.Uri,
     key: string,
@@ -246,7 +101,12 @@ export class MadenMarkdownEditorProvider
       return;
     }
 
-    const normalizedOutput = enforceTitleHeading(pending.replace(/\r\n/g, '\n'), filePath);
+    const previousText = this.documentText.get(key) ?? '';
+    const serializedOutput = enforceTitleHeading(pending.replace(/\r\n/g, '\n'), filePath);
+    const normalizedOutput = reconcileMarkdownPreservingUnchangedFormatting(
+      previousText,
+      serializedOutput
+    );
     this.documentText.set(key, normalizedOutput);
     runtime.applyingHostWrite += 1;
     try {
@@ -392,17 +252,7 @@ export class MadenMarkdownEditorProvider
       };
 
       const broadcastToOtherPanels = (message: HostToWebviewMessage) => {
-        const allPanels = this.panelsByDocument.get(key);
-        if (!allPanels) {
-          return;
-        }
-
-        for (const panel of allPanels) {
-          if (panel === webviewPanel) {
-            continue;
-          }
-          void panel.webview.postMessage(message);
-        }
+        postToOtherDocumentPanels(this.panelsByDocument, key, webviewPanel, message);
       };
 
       const flushPendingWrite = async () => {
@@ -413,8 +263,13 @@ export class MadenMarkdownEditorProvider
           return;
         }
 
+        const previousText = this.documentText.get(key) ?? '';
         const normalizedInput = next.replace(/\r\n/g, '\n');
-        const normalizedOutput = enforceTitleHeading(normalizedInput, currentFilePath());
+        const serializedOutput = enforceTitleHeading(normalizedInput, currentFilePath());
+        const normalizedOutput = reconcileMarkdownPreservingUnchangedFormatting(
+          previousText,
+          serializedOutput
+        );
         this.documentText.set(key, normalizedOutput);
         runtime.applyingHostWrite += 1;
         try {
@@ -529,7 +384,6 @@ export class MadenMarkdownEditorProvider
               currentFilePath()
             );
             runtime.pendingMarkdownFromWebview = normalized;
-            this.documentText.set(key, normalized);
             scheduleWrite();
             return;
           }
@@ -552,6 +406,16 @@ export class MadenMarkdownEditorProvider
             return;
           }
 
+          if (message.type === 'openSourceView') {
+            await vscode.commands.executeCommand(
+              'vscode.openWith',
+              document.uri,
+              'default',
+              vscode.ViewColumn.Beside
+            );
+            return;
+          }
+
           if (message.type === 'aiSettingsLoad') {
             const settings = await this.aiRuntime.loadSettingsPublic();
             void webviewPanel.webview.postMessage({
@@ -568,7 +432,7 @@ export class MadenMarkdownEditorProvider
               type: 'aiSettingsState',
               settings,
             });
-            this.postAiEnabledToAllPanels(settings.enabled);
+            postAiEnabledToAllPanels(this.panelsByDocument, settings.enabled);
             return;
           }
 
@@ -581,14 +445,14 @@ export class MadenMarkdownEditorProvider
 
           if (message.type === 'aiRequestStart') {
             log(
-              `AI request start: id=${message.requestId} route=${message.route} ${this.summarizeAiRequest(message.body)}`
+              `AI request start: id=${message.requestId} route=${message.route} ${summarizeAiRequest(message.body)}`
             );
             log(
-              `AI request payload (full): id=${message.requestId}\n${this.formatAiRequestBody(
+              `AI request payload (full): id=${message.requestId}\n${formatAiRequestBody(
                 message.body
               )}`
             );
-            const latestUserContent = this.extractLatestUserContent(message.body);
+            const latestUserContent = extractLatestUserContent(message.body);
             if (latestUserContent) {
               log(
                 `AI request user content (normalized): id=${message.requestId}\n${latestUserContent}`
@@ -607,7 +471,7 @@ export class MadenMarkdownEditorProvider
                   message.requestId,
                   `${
                     aiResponseTextByRequestId.get(message.requestId) ?? ''
-                  }${this.extractTextDeltaFromSseChunk(chunk)}`
+                  }${extractTextDeltaFromSseChunk(chunk)}`
                 );
                 void webviewPanel.webview.postMessage({
                   type: 'aiStreamChunk',
@@ -806,7 +670,7 @@ export class MadenMarkdownEditorProvider
     const content = await this.readFileSafe(document.uri);
     const normalized = enforceTitleHeading(content, this.documentFilePath.get(key) ?? document.uri.fsPath);
     this.documentText.set(key, normalized);
-    this.postToDocumentPanels(key, {
+    postToDocumentPanels(this.panelsByDocument, key, {
       type: 'externalDocumentUpdated',
       markdown: normalized,
       fileName: getFileNameWithoutExtension(this.documentFilePath.get(key) ?? document.uri.fsPath),
@@ -836,28 +700,6 @@ export class MadenMarkdownEditorProvider
         }
       },
     };
-  }
-
-  private postToDocumentPanels(key: string, message: HostToWebviewMessage) {
-    const panels = this.panelsByDocument.get(key);
-    if (!panels) {
-      return;
-    }
-
-    for (const panel of panels) {
-      void panel.webview.postMessage(message);
-    }
-  }
-
-  private postAiEnabledToAllPanels(aiEnabled: boolean) {
-    for (const panels of this.panelsByDocument.values()) {
-      for (const panel of panels) {
-        void panel.webview.postMessage({
-          type: 'setAiEnabled',
-          aiEnabled,
-        });
-      }
-    }
   }
 
   private async readFileSafe(uri: vscode.Uri): Promise<string> {

@@ -30,7 +30,10 @@ const toTextNode = (value: unknown): { text: string } => {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     const candidate = value as { text?: unknown };
     if (typeof candidate.text === 'string') {
-      return { text: candidate.text };
+      return {
+        ...(candidate as Record<string, unknown>),
+        text: candidate.text,
+      };
     }
   }
 
@@ -64,12 +67,20 @@ const normalizeElementNode = (node: unknown, topLevel = true): TElement | { text
 
     if (typeof candidate.text === 'string') {
       if (!topLevel) {
-        return { text: candidate.text };
+        return {
+          ...(candidate as Record<string, unknown>),
+          text: candidate.text,
+        };
       }
 
       return {
         type: KEYS.p,
-        children: [{ text: candidate.text }],
+        children: [
+          {
+            ...(candidate as Record<string, unknown>),
+            text: candidate.text,
+          },
+        ],
       } as TElement;
     }
 

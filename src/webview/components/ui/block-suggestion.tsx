@@ -70,7 +70,7 @@ const TYPE_TEXT_MAP: Record<string, (node?: TElement) => string> = {
     return 'Paragraph';
   },
   [KEYS.table]: () => 'Table',
-  [KEYS.toc]: () => 'Table of Contents',
+  [KEYS.toc]: () => 'Document Outline',
   [KEYS.toggle]: () => 'Toggle',
   [KEYS.video]: () => 'Video',
 };

@@ -14,6 +14,8 @@ import { Input } from '@/components/ui/input';
 
 const PROVIDERS: Array<{ label: string; value: AiProviderId }> = [
   { label: 'Codex CLI (subscription)', value: 'codex-cli' },
+  { label: 'Qwen CLI (subscription/session)', value: 'qwen-cli' },
+  { label: 'GigaChat CLI (subscription/session)', value: 'gigachat-cli' },
   { label: 'OpenAI', value: 'openai' },
   { label: 'Anthropic', value: 'anthropic' },
   { label: 'Gemini', value: 'gemini' },
@@ -63,7 +65,10 @@ export function AiSettingsDialog({
     onSave(draft);
     onOpenChange(false);
   };
-  const isCodexCli = draft.provider === 'codex-cli';
+  const isCliProvider =
+    draft.provider === 'codex-cli' ||
+    draft.provider === 'qwen-cli' ||
+    draft.provider === 'gigachat-cli';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -140,7 +145,7 @@ export function AiSettingsDialog({
             />
           </label>
 
-          {!isCodexCli && (
+          {!isCliProvider && (
             <label className="flex flex-col gap-1 text-sm">
               Base URL (optional)
               <Input
@@ -153,7 +158,7 @@ export function AiSettingsDialog({
             </label>
           )}
 
-          {!isCodexCli && (
+          {!isCliProvider && (
             <label className="flex flex-col gap-1 text-sm">
               API Key
               <Input
@@ -171,9 +176,9 @@ export function AiSettingsDialog({
             </label>
           )}
 
-          {isCodexCli && (
+          {isCliProvider && (
             <p className="text-muted-foreground text-xs">
-              Codex CLI uses your Codex subscription session and does not require an API token.
+              CLI providers use your local CLI auth/session and do not require an API token in Maden.
             </p>
           )}
 

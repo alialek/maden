@@ -11,7 +11,7 @@ import { PlateContainer, PlateContent, PlateView } from 'platejs/react';
 import { cn } from '@/lib/utils';
 
 const editorContainerVariants = cva(
-  'relative w-full cursor-text select-text overflow-y-auto caret-primary selection:bg-brand/25 focus-visible:outline-none [&_.slate-selection-area]:z-50 [&_.slate-selection-area]:border [&_.slate-selection-area]:border-brand/25 [&_.slate-selection-area]:bg-brand/15',
+  'relative w-full cursor-text select-text overflow-y-auto caret-primary selection:bg-highlight focus-visible:outline-none [&_.slate-selection-area]:z-50 [&_.slate-selection-area]:border [&_.slate-selection-area]:border-brand/25 [&_.slate-selection-area]:bg-brand/15',
   {
     defaultVariants: {
       variant: 'default',
@@ -79,7 +79,7 @@ const editorVariants = cva(
         default:
           'size-full px-16 pt-14 pb-72 text-base sm:px-[max(64px,calc(50%-350px))]',
         demo: 'size-full px-16 pt-14 pb-72 text-base sm:px-[max(64px,calc(50%-350px))]',
-        fullWidth: 'size-full px-16 pt-14 pb-72 text-base sm:px-24',
+        fullWidth: 'size-full px-8 pt-14 pb-72 text-base sm:px-10 lg:px-12 xl:px-16',
         none: '',
         select: 'px-3 py-2 text-base data-readonly:w-fit',
       },

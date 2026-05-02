@@ -59,7 +59,7 @@ function Cursor({
           key={i}
           className={cn(
             'pointer-events-none absolute z-10',
-            id === 'selection' && 'bg-brand/25',
+            id === 'selection' && !isCursor && 'maden-selection-overlay',
             id === 'selection' && isCursor && 'bg-primary'
           )}
           style={{

@@ -7,5 +7,3 @@ declare global {
     __MADEN_WORKSPACE_ROOTS__?: string[];
   }
 }
-
-declare module 'lodash/debounce.js';

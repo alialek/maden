@@ -24,12 +24,15 @@ export function HeadingElement({
   variant = 'h1',
   ...props
 }: PlateElementProps & VariantProps<typeof headingVariants>) {
+  const id = props.element.id as string | undefined;
+
   return (
     <PlateElement
       as={variant!}
       className={headingVariants({ variant })}
       {...props}
     >
+      {id && <span id={id} />}
       {props.children}
     </PlateElement>
   );

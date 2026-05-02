@@ -1,6 +1,13 @@
 import * as React from 'react';
 
-import { EllipsisVertical, FileIcon, FileTextIcon, FileType2Icon, SparklesIcon } from 'lucide-react';
+import {
+  EllipsisVertical,
+  FileIcon,
+  FileTextIcon,
+  FileType2Icon,
+  SettingsIcon,
+  SparklesIcon,
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +34,7 @@ export function AppearanceMenu({
   fontMode,
   onFontModeChange,
   onOpenAiSettings,
+  onOpenMadenSettings,
   onTopbarToggle,
   onWideModeToggle,
   topbarVisible,
@@ -36,6 +44,7 @@ export function AppearanceMenu({
   fontMode: FontMode;
   onFontModeChange: (mode: FontMode) => void;
   onOpenAiSettings: () => void;
+  onOpenMadenSettings: () => void;
   onTopbarToggle: (next: boolean) => void;
   onWideModeToggle: (next: boolean) => void;
   topbarVisible: boolean;
@@ -72,6 +81,10 @@ export function AppearanceMenu({
                 Beta
               </span>
             </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onOpenMadenSettings}>
+            <SettingsIcon />
+            <span>Settings</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuCheckboxItem

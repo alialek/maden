@@ -70,6 +70,35 @@ describe('details toggle conversion', () => {
     expect(Array.isArray(output[2].children)).toBe(true);
   });
 
+  it('preserves inline marks while materializing markdown sections', () => {
+    const sections = [{ type: 'markdown', content: 'ignored' }] as const;
+    const parseMarkdown = (): Value =>
+      [
+        {
+          type: 'p',
+          children: [
+            { bold: true, text: 'Bold' },
+            { text: ' and ' },
+            { italic: true, text: 'italic' },
+          ],
+        },
+      ] as any;
+
+    const output = materializeDetailsSections(
+      sections as unknown as Parameters<typeof materializeDetailsSections>[0],
+      parseMarkdown
+    ) as Array<{
+      children?: Array<Record<string, unknown>>;
+      type: string;
+    }>;
+
+    expect(output[0].children?.[0]).toMatchObject({ bold: true, text: 'Bold' });
+    expect(output[0].children?.[2]).toMatchObject({
+      italic: true,
+      text: 'italic',
+    });
+  });
+
   it('serializes toggle + indented nodes back to details/summary markdown', () => {
     const value: Value = [
       { type: 'p', children: [{ text: 'Before' }] },

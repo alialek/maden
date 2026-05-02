@@ -16,27 +16,30 @@ import {
 } from '@/components/editor/plugins/suggestion-kit';
 
 const suggestionVariants = cva(
-  cn(
-    'bg-emerald-100 text-emerald-700 no-underline transition-colors duration-200'
-  ),
+  cn('maden-suggestion no-underline transition-colors duration-200'),
   {
     defaultVariants: {
+      insert: true,
       insertActive: false,
       remove: false,
       removeActive: false,
     },
     variants: {
+      insert: {
+        false: '',
+        true: 'maden-suggestion-insert',
+      },
       insertActive: {
         false: '',
-        true: 'bg-emerald-200/80',
+        true: 'maden-suggestion-insert-active',
       },
       remove: {
         false: '',
-        true: 'bg-red-100 text-red-700',
+        true: 'maden-suggestion-remove',
       },
       removeActive: {
         false: '',
-        true: 'bg-red-200/80 no-underline',
+        true: 'maden-suggestion-remove-active no-underline',
       },
     },
   }
@@ -67,6 +70,7 @@ export function SuggestionLeaf(props: PlateLeafProps<TSuggestionText>) {
       as={Component}
       className={cn(
         suggestionVariants({
+          insert: !hasRemove,
           insertActive: hasActive || hasHover,
           remove: hasRemove,
           removeActive: (hasActive || hasHover) && hasRemove,
@@ -129,6 +133,7 @@ function SuggestionLineBreakContent({
             className={cn(
               'absolute text-justify',
               suggestionVariants({
+                insert: isInsert,
                 insertActive: isInsert && (isActive || isHover),
                 remove: isRemove,
                 removeActive: (isActive || isHover) && isRemove,
@@ -147,6 +152,7 @@ function SuggestionLineBreakContent({
         <div
           className={cn(
             suggestionVariants({
+              insert: isInsert,
               insertActive: isInsert && (isActive || isHover),
               remove: isRemove,
               removeActive: (isActive || isHover) && isRemove,

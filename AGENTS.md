@@ -13,6 +13,12 @@
 - Do not run web build unless explicitly requested.
 - After AI-related code changes, run extension build and report result.
 
+## Markdown Conversion Debugging
+- `npm run debug:markdown -- <file.md>` and `npm run debug:plate -- <plate.json>` must stay fully identical to extension conversion behavior.
+- These utilities must import production conversion entrypoints from `src/webview/lib/markdown-plate-conversion.ts` and shared save-format reconcile from `src/shared/markdown-format-reconcile.ts`; do not add console-only or extension-only Markdown/Plate conversion logic.
+- Use `debug:markdown` for Markdown -> Plate diagnostics and `debug:plate -- <plate.json> --compare <file.md>` for Plate -> Markdown/save-stability diagnostics.
+- `serialized.md` is the save-stable output; `serialized.raw.md` is the raw Plate serializer output for debugging serializer noise.
+
 ## AI Editing Behavior (Important)
 - For rewrite actions, send markdown context, not JSON blob.
 - Context must include:
@@ -34,3 +40,9 @@
 
 ## Codex CLI Provider
 - For `codex-cli`, do not require entering API token in UI by default.
+
+## Checking the original solution
+- If needed to check original plate solution navigate to this website via chrome mcp https://platejs.org/blocks/playground
+
+## Checking our current soultion
+- If needed to check how elements rendered or errors raised, run a web server of extension and navigate to localhost via MCP

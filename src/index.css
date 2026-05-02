@@ -7,6 +7,125 @@
 
 @layer base {
   :root {
+    --radius: 0.625rem;
+    --font-sans: 'Geist Variable', sans-serif;
+  }
+
+  .theme {
+    --font-sans: 'Geist Variable', sans-serif;
+  }
+
+  :root,
+  body:not([data-maden-theme]),
+  body[data-maden-theme='inherit'] {
+    --background: var(--vscode-editor-background, oklch(1 0 0));
+    --foreground: var(--vscode-editor-foreground, oklch(0.145 0 0));
+    --card: var(--vscode-editorWidget-background, var(--background));
+    --card-foreground: var(--vscode-editorWidget-foreground, var(--foreground));
+    --popover: var(--vscode-editorWidget-background, var(--background));
+    --popover-foreground: var(--vscode-editorWidget-foreground, var(--foreground));
+    --primary: var(--vscode-button-background, oklch(0.205 0 0));
+    --primary-foreground: var(--vscode-button-foreground, oklch(0.985 0 0));
+    --secondary: var(--vscode-button-secondaryBackground, var(--card));
+    --secondary-foreground: var(--vscode-button-secondaryForeground, var(--foreground));
+    --muted: var(--vscode-editorWidget-background, var(--card));
+    --muted-foreground: var(--vscode-descriptionForeground, var(--foreground));
+    --accent: var(--vscode-list-hoverBackground, var(--card));
+    --accent-foreground: var(--vscode-list-hoverForeground, var(--foreground));
+    --destructive: var(--vscode-errorForeground, oklch(0.58 0.22 27));
+    --border: var(--vscode-panel-border, var(--vscode-editorWidget-border, oklch(0.922 0 0)));
+    --input: var(--vscode-input-background, var(--background));
+    --ring: var(--vscode-focusBorder, oklch(0.708 0 0));
+    --chart-1: oklch(0.809 0.105 251.813);
+    --chart-2: oklch(0.623 0.214 259.815);
+    --chart-3: oklch(0.546 0.245 262.881);
+    --chart-4: oklch(0.488 0.243 264.376);
+    --chart-5: oklch(0.424 0.199 265.638);
+    --sidebar: var(--card);
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
+    --highlight: var(--vscode-editor-selectionBackground, oklch(0.84 0.09 240));
+    --brand: var(--vscode-textLink-foreground, oklch(0.623 0.214 259.815));
+
+    --maden-checkbox-border: color-mix(
+      in oklab,
+      var(--vscode-editor-foreground, var(--foreground)) 20%,
+      transparent
+    );
+    --maden-hover-bg: var(--vscode-list-hoverBackground, var(--accent));
+    --maden-hover-foreground: var(--vscode-list-hoverForeground, var(--foreground));
+    --maden-command-hover-bg: var(
+      --vscode-list-hoverBackground,
+      color-mix(
+        in oklab,
+        var(--vscode-editor-foreground, var(--foreground)) 12%,
+        transparent
+      )
+    );
+    --maden-suggestion-insert-bg: var(
+      --vscode-editorGutter-addedBackground,
+      rgb(16 185 129 / 0.34)
+    );
+    --maden-suggestion-insert-foreground: var(
+      --vscode-diffEditor-insertedTextForeground,
+      var(--foreground)
+    );
+    --maden-suggestion-remove-bg: var(
+      --vscode-editorGutter-deletedBackground,
+      rgb(239 68 68 / 0.34)
+    );
+    --maden-suggestion-remove-foreground: var(
+      --vscode-diffEditor-removedTextForeground,
+      var(--foreground)
+    );
+    --maden-suggestion-active-border: color-mix(
+      in oklab,
+      var(--vscode-editor-foreground, var(--foreground)) 46%,
+      transparent
+    );
+    --maden-ai-inline-bg: var(--vscode-editorInfo-background, rgb(99 102 241 / 0.14));
+    --maden-ai-inline-border: var(--vscode-editorInfo-border, rgb(99 102 241 / 0.35));
+    --maden-ai-inline-foreground: var(--vscode-editorInfo-foreground, var(--foreground));
+    --maden-shimmer-edge: color-mix(
+      in oklab,
+      var(--vscode-editor-foreground, var(--foreground)) 20%,
+      transparent
+    );
+    --maden-shimmer-mid: color-mix(
+      in oklab,
+      var(--vscode-editor-foreground, var(--foreground)) 36%,
+      transparent
+    );
+    --maden-code-bg: color-mix(
+      in oklab,
+      var(--vscode-editor-background, var(--background)) 95%,
+      var(--vscode-editor-foreground, var(--foreground)) 5%
+    );
+    --maden-code-border: color-mix(
+      in oklab,
+      var(--vscode-editor-foreground, var(--foreground)) 12%,
+      transparent
+    );
+    --maden-document-bg: var(--vscode-editor-background, var(--background));
+    --maden-inline-code-font: var(
+      --monaco-monospace-font,
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace
+    );
+    --maden-inline-code-foreground: var(--vscode-textPreformat-foreground, var(--foreground));
+    --maden-inline-code-bg: var(--vscode-textPreformat-background, var(--maden-code-bg));
+  }
+
+  body[data-maden-theme='light'] {
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -30,7 +149,6 @@
     --chart-3: oklch(0.546 0.245 262.881);
     --chart-4: oklch(0.488 0.243 264.376);
     --chart-5: oklch(0.424 0.199 265.638);
-    --radius: 0.625rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.205 0 0);
@@ -38,18 +156,100 @@
     --sidebar-accent: oklch(0.97 0 0);
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0)
-  ;
-    --highlight: oklch(0.852 0.199 91.936);
-    --brand: oklch(0.623 0.214 259.815)}
-  .dark {
+    --sidebar-ring: oklch(0.708 0 0);
+    --highlight: oklch(0.84 0.09 240);
+    --brand: oklch(0.623 0.214 259.815);
+
+    --maden-checkbox-border: color-mix(in oklab, var(--foreground) 20%, transparent);
+    --maden-hover-bg: var(--accent);
+    --maden-hover-foreground: var(--accent-foreground);
+    --maden-command-hover-bg: color-mix(in oklab, var(--foreground) 12%, transparent);
+    --maden-suggestion-insert-bg: rgb(16 185 129 / 0.34);
+    --maden-suggestion-insert-foreground: var(--foreground);
+    --maden-suggestion-remove-bg: rgb(239 68 68 / 0.34);
+    --maden-suggestion-remove-foreground: var(--foreground);
+    --maden-suggestion-active-border: color-mix(in oklab, var(--foreground) 46%, transparent);
+    --maden-ai-inline-bg: rgb(99 102 241 / 0.14);
+    --maden-ai-inline-border: rgb(99 102 241 / 0.35);
+    --maden-ai-inline-foreground: var(--foreground);
+    --maden-shimmer-edge: color-mix(in oklab, var(--foreground) 20%, transparent);
+    --maden-shimmer-mid: color-mix(in oklab, var(--foreground) 36%, transparent);
+    --maden-code-bg: color-mix(in oklab, var(--background) 95%, var(--foreground) 5%);
+    --maden-code-border: color-mix(in oklab, var(--foreground) 12%, transparent);
+    --maden-document-bg: var(--background);
+    --maden-inline-code-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --maden-inline-code-foreground: var(--foreground);
+    --maden-inline-code-bg: var(--maden-code-bg);
+    color-scheme: light;
+  }
+
+  body[data-maden-theme='confluence'] {
+    --background: #ffffff;
+    --foreground: #172b4d;
+    --card: #ffffff;
+    --card-foreground: #172b4d;
+    --popover: #ffffff;
+    --popover-foreground: #172b4d;
+    --primary: #0052cc;
+    --primary-foreground: #ffffff;
+    --secondary: #f4f5f7;
+    --secondary-foreground: #172b4d;
+    --muted: #f4f5f7;
+    --muted-foreground: #5e6c84;
+    --accent: #ebecf0;
+    --accent-foreground: #172b4d;
+    --destructive: #de350b;
+    --border: #dfe1e6;
+    --input: #dfe1e6;
+    --ring: #4c9aff;
+    --chart-1: #0052cc;
+    --chart-2: #36b37e;
+    --chart-3: #ffab00;
+    --chart-4: #de350b;
+    --chart-5: #6554c0;
+    --sidebar: #f4f5f7;
+    --sidebar-foreground: #172b4d;
+    --sidebar-primary: #0052cc;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #ebecf0;
+    --sidebar-accent-foreground: #172b4d;
+    --sidebar-border: #dfe1e6;
+    --sidebar-ring: #4c9aff;
+    --highlight: #b3d4ff;
+    --brand: #0052cc;
+
+    --maden-checkbox-border: rgb(23 43 77 / 20%);
+    --maden-hover-bg: #ebecf0;
+    --maden-hover-foreground: #172b4d;
+    --maden-command-hover-bg: #ebecf0;
+    --maden-suggestion-insert-bg: rgb(54 179 126 / 22%);
+    --maden-suggestion-insert-foreground: #172b4d;
+    --maden-suggestion-remove-bg: rgb(222 53 11 / 18%);
+    --maden-suggestion-remove-foreground: #172b4d;
+    --maden-suggestion-active-border: rgb(23 43 77 / 42%);
+    --maden-ai-inline-bg: rgb(76 154 255 / 16%);
+    --maden-ai-inline-border: rgb(0 82 204 / 35%);
+    --maden-ai-inline-foreground: #172b4d;
+    --maden-shimmer-edge: rgb(23 43 77 / 16%);
+    --maden-shimmer-mid: rgb(23 43 77 / 28%);
+    --maden-code-bg: #f4f5f7;
+    --maden-code-border: #dfe1e6;
+    --maden-document-bg: #ffffff;
+    --maden-inline-code-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --maden-inline-code-foreground: #172b4d;
+    --maden-inline-code-bg: #f4f5f7;
+    color-scheme: light;
+  }
+
+  .dark,
+  body[data-maden-theme='dark'] {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.205 0 0);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.87 0.00 0);
+    --primary: oklch(0.87 0 0);
     --primary-foreground: oklch(0.205 0 0);
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
@@ -73,70 +273,44 @@
     --sidebar-accent: oklch(0.269 0 0);
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0)
-  ;
-    --highlight: oklch(0.852 0.199 91.936);
-    --brand: oklch(0.707 0.165 254.624)}
-  .theme {
-    --font-sans: 'Geist Variable', sans-serif
-  }
+    --sidebar-ring: oklch(0.556 0 0);
+    --highlight: oklch(0.42 0.12 250);
+    --brand: oklch(0.707 0.165 254.624);
 
-  :root {
-    --background: var(--vscode-editor-background, oklch(1 0 0));
-    --foreground: var(--vscode-editor-foreground, oklch(0.145 0 0));
-    --card: var(--vscode-editorWidget-background, var(--background));
-    --card-foreground: var(--vscode-editorWidget-foreground, var(--foreground));
-    --popover: var(--vscode-editorWidget-background, var(--background));
-    --popover-foreground: var(--vscode-editorWidget-foreground, var(--foreground));
-    --primary: var(--vscode-button-background, oklch(0.205 0 0));
-    --primary-foreground: var(--vscode-button-foreground, oklch(0.985 0 0));
-    --secondary: var(--vscode-button-secondaryBackground, var(--card));
-    --secondary-foreground: var(--vscode-button-secondaryForeground, var(--foreground));
-    --muted: var(--vscode-editorWidget-background, var(--card));
-    --muted-foreground: var(--vscode-descriptionForeground, var(--foreground));
-    --accent: var(--vscode-list-hoverBackground, var(--card));
-    --accent-foreground: var(--vscode-list-hoverForeground, var(--foreground));
-    --destructive: var(--vscode-errorForeground, oklch(0.58 0.22 27));
-    --border: var(--vscode-panel-border, var(--vscode-editorWidget-border, oklch(0.922 0 0)));
-    --input: var(--vscode-input-background, var(--background));
-    --ring: var(--vscode-focusBorder, oklch(0.708 0 0));
-    --highlight: var(--vscode-editor-selectionBackground, oklch(0.852 0.199 91.936));
-    --brand: var(--vscode-textLink-foreground, oklch(0.623 0.214 259.815));
-  }
-
-  body.vscode-light,
-  body.vscode-dark,
-  body.vscode-high-contrast,
-  body.vscode-high-contrast-light {
-    --background: var(--vscode-editor-background, oklch(1 0 0));
-    --foreground: var(--vscode-editor-foreground, oklch(0.145 0 0));
-    --card: var(--vscode-editorWidget-background, var(--background));
-    --card-foreground: var(--vscode-editorWidget-foreground, var(--foreground));
-    --popover: var(--vscode-editorWidget-background, var(--background));
-    --popover-foreground: var(--vscode-editorWidget-foreground, var(--foreground));
-    --primary: var(--vscode-button-background, oklch(0.205 0 0));
-    --primary-foreground: var(--vscode-button-foreground, oklch(0.985 0 0));
-    --secondary: var(--vscode-button-secondaryBackground, var(--card));
-    --secondary-foreground: var(--vscode-button-secondaryForeground, var(--foreground));
-    --muted: var(--vscode-editorWidget-background, var(--card));
-    --muted-foreground: var(--vscode-descriptionForeground, var(--foreground));
-    --accent: var(--vscode-list-hoverBackground, var(--card));
-    --accent-foreground: var(--vscode-list-hoverForeground, var(--foreground));
-    --destructive: var(--vscode-errorForeground, oklch(0.58 0.22 27));
-    --border: var(--vscode-panel-border, var(--vscode-editorWidget-border, oklch(0.922 0 0)));
-    --input: var(--vscode-input-background, var(--background));
-    --ring: var(--vscode-focusBorder, oklch(0.708 0 0));
-    --highlight: var(--vscode-editor-selectionBackground, oklch(0.852 0.199 91.936));
-    --brand: var(--vscode-textLink-foreground, oklch(0.623 0.214 259.815));
-  }
-
-  body.vscode-dark,
-  body.vscode-high-contrast {
+    --maden-checkbox-border: color-mix(in oklab, var(--foreground) 20%, transparent);
+    --maden-hover-bg: var(--accent);
+    --maden-hover-foreground: var(--accent-foreground);
+    --maden-command-hover-bg: color-mix(in oklab, var(--foreground) 12%, transparent);
+    --maden-suggestion-insert-bg: rgb(16 185 129 / 0.34);
+    --maden-suggestion-insert-foreground: var(--foreground);
+    --maden-suggestion-remove-bg: rgb(239 68 68 / 0.34);
+    --maden-suggestion-remove-foreground: var(--foreground);
+    --maden-suggestion-active-border: color-mix(in oklab, var(--foreground) 46%, transparent);
+    --maden-ai-inline-bg: rgb(99 102 241 / 0.16);
+    --maden-ai-inline-border: rgb(99 102 241 / 0.4);
+    --maden-ai-inline-foreground: var(--foreground);
+    --maden-shimmer-edge: color-mix(in oklab, var(--foreground) 20%, transparent);
+    --maden-shimmer-mid: color-mix(in oklab, var(--foreground) 36%, transparent);
+    --maden-code-bg: color-mix(in oklab, var(--background) 95%, var(--foreground) 5%);
+    --maden-code-border: color-mix(in oklab, var(--foreground) 12%, transparent);
+    --maden-document-bg: var(--background);
+    --maden-inline-code-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --maden-inline-code-foreground: var(--foreground);
+    --maden-inline-code-bg: var(--maden-code-bg);
     color-scheme: dark;
   }
 
-  body.vscode-light,
-  body.vscode-high-contrast-light {
+  body:not([data-maden-theme]).vscode-dark,
+  body:not([data-maden-theme]).vscode-high-contrast,
+  body[data-maden-theme='inherit'].vscode-dark,
+  body[data-maden-theme='inherit'].vscode-high-contrast {
+    color-scheme: dark;
+  }
+
+  body:not([data-maden-theme]).vscode-light,
+  body:not([data-maden-theme]).vscode-high-contrast-light,
+  body[data-maden-theme='inherit'].vscode-light,
+  body[data-maden-theme='inherit'].vscode-high-contrast-light {
     color-scheme: light;
   }
 
@@ -145,6 +319,197 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  code {
+    font-family: var(--maden-inline-code-font);
+    color: var(--maden-inline-code-foreground);
+    background-color: var(--maden-inline-code-bg);
+    padding: 1px 3px;
+    border-radius: 4px;
+  }
+  .maden-link {
+    color: var(--brand);
+    text-decoration-color: color-mix(in oklab, var(--brand) 72%, transparent);
+  }
+
+  body[data-maden-theme='confluence'] .page-content {
+    background-color: #ffffff;
+    color: #172b4d;
+    font-family: Helvetica, Arial, sans-serif !important;
+    font-size: 14px !important;
+    line-height: 1.45;
+    padding-top: 32px !important;
+    padding-bottom: 160px !important;
+  }
+
+  @media (min-width: 640px) {
+    body[data-maden-theme='confluence'] .page-content {
+      padding-left: max(40px, calc(50% - 380px)) !important;
+      padding-right: max(40px, calc(50% - 380px)) !important;
+    }
+
+    body[data-maden-theme='confluence'][data-maden-wide-mode='enabled'] .page-content {
+      padding-left: 40px !important;
+      padding-right: 40px !important;
+    }
+  }
+
+  body[data-maden-theme='confluence'] .page-content > [data-slate-node='element'] {
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+
+  body[data-maden-theme='confluence'] .page-content [data-slate-node='element'][placeholder] {
+    min-height: 1.45em;
+    position: relative;
+  }
+
+  body[data-maden-theme='confluence'] .page-content [data-slate-node='element'][placeholder]::before {
+    left: 0;
+    line-height: 1.45;
+    top: 2px;
+    transform: none !important;
+  }
+
+  body[data-maden-theme='confluence'] .page-content ul:not(:has(.maden-task-checkbox)) [data-slate-node='element'][placeholder]::before,
+  body[data-maden-theme='confluence'] .page-content ol:not(:has(.maden-task-checkbox)) [data-slate-node='element'][placeholder]::before {
+    left: 24px;
+  }
+
+  body[data-maden-theme='confluence'] .page-content p {
+    color: #172b4d;
+    font-size: 14px;
+    line-height: 1.45;
+    margin: 0;
+  }
+
+  body[data-maden-theme='confluence'] .page-content h1,
+  body[data-maden-theme='confluence'] .page-content h2,
+  body[data-maden-theme='confluence'] .page-content h3,
+  body[data-maden-theme='confluence'] .page-content h4,
+  body[data-maden-theme='confluence'] .page-content h5,
+  body[data-maden-theme='confluence'] .page-content h6 {
+    color: #172b4d;
+    font-family: Helvetica, Arial, sans-serif !important;
+    letter-spacing: 0;
+  }
+
+  body[data-maden-theme='confluence'] .page-content h1 {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1.25;
+    margin-top: 24px;
+    margin-bottom: 8px;
+    padding-bottom: 0;
+  }
+
+  body[data-maden-theme='confluence'] .page-content h2 {
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1.3;
+    margin-top: 20px;
+    margin-bottom: 6px;
+    padding-bottom: 0;
+  }
+
+  body[data-maden-theme='confluence'] .page-content h3 {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-top: 16px;
+    margin-bottom: 4px;
+    padding-bottom: 0;
+  }
+
+  body[data-maden-theme='confluence'] .page-content h4,
+  body[data-maden-theme='confluence'] .page-content h5,
+  body[data-maden-theme='confluence'] .page-content h6 {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-top: 12px;
+    margin-bottom: 2px;
+  }
+
+  body[data-maden-theme='confluence'] .page-content ul,
+  body[data-maden-theme='confluence'] .page-content ol {
+    margin-top: 2px;
+    margin-bottom: 2px;
+    padding-left: 24px;
+  }
+
+  body[data-maden-theme='confluence'] .page-content ul:has(.maden-task-checkbox),
+  body[data-maden-theme='confluence'] .page-content ol:has(.maden-task-checkbox) {
+    padding-left: 18px;
+  }
+
+  body[data-maden-theme='confluence'] .page-content .maden-task-checkbox {
+    left: -18px !important;
+    top: 3px !important;
+  }
+
+  body[data-maden-theme='confluence'] .page-content li {
+    color: #172b4d;
+    line-height: 1.45;
+    margin: 0;
+    padding-top: 1px;
+    padding-bottom: 1px;
+  }
+
+  body[data-maden-theme='confluence'] .page-content blockquote {
+    border-left-color: #dfe1e6;
+    color: #5e6c84;
+    margin: 4px 0;
+    padding-left: 12px;
+  }
+
+  body[data-maden-theme='confluence'] .page-content table {
+    border-collapse: collapse;
+    color: #172b4d;
+    font-size: 14px;
+  }
+
+  body[data-maden-theme='confluence'] .page-content th,
+  body[data-maden-theme='confluence'] .page-content td {
+    background-color: #ffffff;
+    color: #172b4d;
+  }
+
+  body[data-maden-theme='confluence'] .page-content th > div,
+  body[data-maden-theme='confluence'] .page-content td > div {
+    min-height: 28px !important;
+    padding: 5px 8px !important;
+  }
+
+  body[data-maden-theme='confluence'] .page-content th::before,
+  body[data-maden-theme='confluence'] .page-content td::before {
+    border-color: #dfe1e6 !important;
+  }
+
+  body[data-maden-theme='confluence'] .page-content th {
+    background-color: #f4f5f7;
+    font-weight: 600;
+  }
+
+  body[data-maden-theme='confluence'] .page-content pre {
+    background-color: #f4f5f7;
+    border: 1px solid #dfe1e6;
+    border-radius: 3px;
+    color: #172b4d;
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 12px !important;
+  }
+
+  body[data-maden-theme='confluence'] .page-content code {
+    border-radius: 3px;
+    font-size: 12px;
+    padding: 1px 3px;
+  }
+
+  body[data-maden-theme='confluence'] .page-content hr {
+    border-color: #dfe1e6;
+    margin: 12px 0;
   }
   html {
     @apply font-sans;
@@ -186,6 +551,60 @@
     z-index: 60;
   }
 
+  .maden-selection-overlay {
+    background-color: color-mix(in oklab, var(--highlight) 25%, transparent);
+  }
+
+  .maden-checkbox {
+    border-color: var(--maden-checkbox-border) !important;
+  }
+
+  @supports not (color: color-mix(in oklab, red, transparent)) {
+    .maden-selection-overlay {
+      background-color: rgb(127 127 127 / 0.25);
+    }
+
+    .maden-checkbox {
+      border-color: rgb(127 127 127 / 0.2) !important;
+    }
+  }
+
+  .maden-suggestion {
+    color: var(--foreground);
+  }
+
+  .maden-suggestion-insert {
+    background-color: var(--maden-suggestion-insert-bg);
+    color: var(--maden-suggestion-insert-foreground);
+  }
+
+  .maden-suggestion-remove {
+    background-color: var(--maden-suggestion-remove-bg);
+    color: var(--maden-suggestion-remove-foreground);
+  }
+
+  .maden-suggestion-insert-active,
+  .maden-suggestion-remove-active {
+    box-shadow: inset 0 0 0 1px var(--maden-suggestion-active-border);
+  }
+
+  .maden-suggestion-remove-active {
+    text-decoration: none;
+  }
+
+  @supports not (color: color-mix(in oklab, red, transparent)) {
+    .maden-suggestion-insert-active,
+    .maden-suggestion-remove-active {
+      box-shadow: inset 0 0 0 1px rgb(127 127 127 / 0.35);
+    }
+  }
+
+  .maden-ai-inline {
+    background-color: var(--maden-ai-inline-bg);
+    border-bottom-color: var(--maden-ai-inline-border);
+    color: var(--maden-ai-inline-foreground);
+  }
+
   @keyframes maden-ai-shimmer-slide {
     from {
       transform: translateX(-150%);
@@ -210,9 +629,9 @@
     background: linear-gradient(
       110deg,
       transparent 20%,
-      color-mix(in oklab, var(--vscode-editor-foreground, var(--foreground)) 20%, transparent) 45%,
-      color-mix(in oklab, var(--vscode-editor-foreground, var(--foreground)) 36%, transparent) 50%,
-      color-mix(in oklab, var(--vscode-editor-foreground, var(--foreground)) 20%, transparent) 55%,
+      var(--maden-shimmer-edge) 45%,
+      var(--maden-shimmer-mid) 50%,
+      var(--maden-shimmer-edge) 55%,
       transparent 80%
     );
     animation: maden-ai-shimmer-slide 1.56s linear infinite;
@@ -233,21 +652,14 @@
 
   [data-slot='inline-combobox-item']:hover,
   [data-slot='inline-combobox-item'][data-active-item='true'] {
-    background-color: var(--vscode-list-hoverBackground, var(--accent));
-    color: var(--vscode-list-hoverForeground, var(--foreground));
+    background-color: var(--maden-hover-bg);
+    color: var(--maden-hover-foreground);
   }
 
   [data-slot='command-item']:hover,
   [data-slot='command-item'][data-selected='true'] {
-    background-color: var(
-      --vscode-list-hoverBackground,
-      color-mix(
-        in oklab,
-        var(--vscode-editor-foreground, var(--foreground)) 12%,
-        transparent
-      )
-    );
-    color: var(--vscode-list-hoverForeground, var(--foreground));
+    background-color: var(--maden-command-hover-bg);
+    color: var(--maden-hover-foreground);
   }
 
   @supports not (color: color-mix(in oklab, red, transparent)) {
@@ -265,23 +677,39 @@
   }
 
   .maden-code-block-surface {
-    background-color: color-mix(
-      in oklab,
-      var(--vscode-editor-background, var(--background)) 95%,
-      var(--vscode-editor-foreground, var(--foreground)) 5%
-    );
-    border: 1px solid
-      color-mix(
-        in oklab,
-        var(--vscode-editor-foreground, var(--foreground)) 12%,
-        transparent
-      );
+    background-color: var(--maden-code-bg);
+    border: 1px solid var(--maden-code-border);
+  }
+
+  .slate-code_drawing pre,
+  .slate-code_drawing code,
+  .maden-code-drawing-code {
+    background-color: var(--maden-document-bg) !important;
+  }
+
+  .maden-excalidraw {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  .maden-excalidraw .excalidraw {
+    --color-primary: var(--primary);
+    --color-primary-darker: color-mix(in oklab, var(--primary), black 12%);
+    --color-primary-darkest: color-mix(in oklab, var(--primary), black 22%);
+    --color-primary-light: color-mix(in oklab, var(--primary), white 78%);
+    color: var(--foreground);
   }
 
   @supports not (color: color-mix(in oklab, red, transparent)) {
     .maden-code-block-surface {
       background-color: var(--muted);
       border: 1px solid var(--border);
+    }
+
+    .maden-excalidraw .excalidraw {
+      --color-primary-darker: var(--primary);
+      --color-primary-darkest: var(--primary);
+      --color-primary-light: var(--accent);
     }
   }
 
@@ -293,44 +721,79 @@
     height: 0 !important;
   }
 
+  [data-slot="dropdown-menu-item"]:hover,
   [data-slot="dropdown-menu-item"][data-highlighted],
+  [data-slot="dropdown-menu-radio-item"]:hover,
   [data-slot="dropdown-menu-radio-item"][data-highlighted],
+  [data-slot="dropdown-menu-checkbox-item"]:hover,
   [data-slot="dropdown-menu-checkbox-item"][data-highlighted],
+  [data-slot="dropdown-menu-sub-trigger"]:hover,
   [data-slot="dropdown-menu-sub-trigger"][data-highlighted],
+  [data-slot="context-menu-item"]:hover,
   [data-slot="context-menu-item"][data-highlighted],
+  [data-slot="context-menu-radio-item"]:hover,
   [data-slot="context-menu-radio-item"][data-highlighted],
+  [data-slot="context-menu-checkbox-item"]:hover,
   [data-slot="context-menu-checkbox-item"][data-highlighted],
-  [data-slot="context-menu-sub-trigger"][data-highlighted] {
+  [data-slot="context-menu-sub-trigger"]:hover,
+  [data-slot="context-menu-sub-trigger"][data-highlighted],
+  [data-slot="select-item"]:hover,
+  [data-slot="select-item"][data-highlighted],
+  [data-slot="select-item"]:focus {
     background-color: var(--accent);
     color: var(--accent-foreground);
   }
 
+  [data-slot="dropdown-menu-item"]:hover svg,
   [data-slot="dropdown-menu-item"][data-highlighted] svg,
+  [data-slot="dropdown-menu-radio-item"]:hover svg,
   [data-slot="dropdown-menu-radio-item"][data-highlighted] svg,
+  [data-slot="dropdown-menu-checkbox-item"]:hover svg,
   [data-slot="dropdown-menu-checkbox-item"][data-highlighted] svg,
+  [data-slot="dropdown-menu-sub-trigger"]:hover svg,
   [data-slot="dropdown-menu-sub-trigger"][data-highlighted] svg,
+  [data-slot="context-menu-item"]:hover svg,
   [data-slot="context-menu-item"][data-highlighted] svg,
+  [data-slot="context-menu-radio-item"]:hover svg,
   [data-slot="context-menu-radio-item"][data-highlighted] svg,
+  [data-slot="context-menu-checkbox-item"]:hover svg,
   [data-slot="context-menu-checkbox-item"][data-highlighted] svg,
-  [data-slot="context-menu-sub-trigger"][data-highlighted] svg {
+  [data-slot="context-menu-sub-trigger"]:hover svg,
+  [data-slot="context-menu-sub-trigger"][data-highlighted] svg,
+  [data-slot="select-item"]:hover svg,
+  [data-slot="select-item"][data-highlighted] svg,
+  [data-slot="select-item"]:focus svg {
     color: var(--accent-foreground);
   }
 
+  [data-slot="dropdown-menu-item"]:hover,
   [data-slot="dropdown-menu-item"][data-highlighted],
+  [data-slot="dropdown-menu-radio-item"]:hover,
   [data-slot="dropdown-menu-radio-item"][data-highlighted],
+  [data-slot="dropdown-menu-checkbox-item"]:hover,
   [data-slot="dropdown-menu-checkbox-item"][data-highlighted],
+  [data-slot="dropdown-menu-sub-trigger"]:hover,
   [data-slot="dropdown-menu-sub-trigger"][data-highlighted],
+  [data-slot="context-menu-item"]:hover,
   [data-slot="context-menu-item"][data-highlighted],
+  [data-slot="context-menu-radio-item"]:hover,
   [data-slot="context-menu-radio-item"][data-highlighted],
+  [data-slot="context-menu-checkbox-item"]:hover,
   [data-slot="context-menu-checkbox-item"][data-highlighted],
-  [data-slot="context-menu-sub-trigger"][data-highlighted] {
+  [data-slot="context-menu-sub-trigger"]:hover,
+  [data-slot="context-menu-sub-trigger"][data-highlighted],
+  [data-slot="select-item"]:hover,
+  [data-slot="select-item"][data-highlighted],
+  [data-slot="select-item"]:focus {
     border-color: transparent !important;
     border-width: 0 !important;
     box-shadow: none !important;
     outline: none !important;
   }
 
+  [data-slot="dropdown-menu-item"][data-variant="destructive"]:hover,
   [data-slot="dropdown-menu-item"][data-variant="destructive"][data-highlighted],
+  [data-slot="context-menu-item"][data-variant="destructive"]:hover,
   [data-slot="context-menu-item"][data-variant="destructive"][data-highlighted] {
     background-color: color-mix(in oklab, var(--destructive) 10%, transparent);
     color: var(--destructive);

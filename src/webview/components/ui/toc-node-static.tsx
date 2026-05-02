@@ -8,42 +8,51 @@ import { type SlateEditor, type TElement, NodeApi } from 'platejs';
 import { SlateElement } from 'platejs/static';
 
 import { Button } from '@/components/ui/button';
+import { buildTocTree, type TocTreeItem } from '@/lib/toc-outline';
 
 const headingItemVariants = cva(
-  'block h-auto w-full cursor-pointer truncate rounded-none px-0.5 py-1.5 text-left font-medium text-muted-foreground underline decoration-[0.5px] underline-offset-4 hover:bg-accent hover:text-muted-foreground',
-  {
-    variants: {
-      depth: {
-        1: 'pl-0.5',
-        2: 'pl-[26px]',
-        3: 'pl-[50px]',
-      },
-    },
-  }
+  'block h-auto w-full cursor-pointer truncate rounded-none px-0.5 py-1.5 text-left font-medium text-muted-foreground underline decoration-[0.5px] underline-offset-4 hover:bg-accent hover:text-muted-foreground'
 );
+
+function TocHeadingItemStatic({ item }: { item: TocTreeItem }) {
+  return (
+    <li>
+      <Button
+        asChild
+        variant="ghost"
+        className={headingItemVariants()}
+        style={{ paddingLeft: `${Math.max(0, item.depth - 1) * 24 + 2}px` }}
+      >
+        <a href={`#${item.fragmentId}`}>{item.title}</a>
+      </Button>
+      {item.children.length > 0 && (
+        <ol className="m-0 list-none p-0">
+          {item.children.map((child) => (
+            <TocHeadingItemStatic key={child.id} item={child} />
+          ))}
+        </ol>
+      )}
+    </li>
+  );
+}
 
 export function TocElementStatic(props: SlateElementProps) {
   const { editor } = props;
   const headingList = getHeadingList(editor);
+  const headingTree = buildTocTree(headingList);
 
   return (
     <SlateElement {...props} className="mb-1 p-0">
       <div>
-        {headingList.length > 0 ? (
-          headingList.map((item) => (
-            <Button
-              key={item.title}
-              variant="ghost"
-              className={headingItemVariants({
-                depth: item.depth as 1 | 2 | 3,
-              })}
-            >
-              {item.title}
-            </Button>
-          ))
+        {headingTree.length > 0 ? (
+          <ol className="m-0 list-none p-0">
+            {headingTree.map((item) => (
+              <TocHeadingItemStatic key={item.id} item={item} />
+            ))}
+          </ol>
         ) : (
           <div className="text-gray-500 text-sm">
-            Create a heading to display the table of contents.
+            Create a heading to display the document outline.
           </div>
         )}
       </div>
@@ -137,7 +146,7 @@ export function TocElementDocx(props: SlateElementProps) {
           ))
         ) : (
           <p style={{ color: '#666', fontSize: '10pt' }}>
-            Create a heading to display the table of contents.
+            Create a heading to display the document outline.
           </p>
         )}
       </div>

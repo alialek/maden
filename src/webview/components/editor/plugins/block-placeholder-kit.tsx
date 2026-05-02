@@ -11,7 +11,7 @@ export const BlockPlaceholderKit = [
       placeholders: {
         [KEYS.p]: 'Type something...',
       },
-      query: ({ path }) => path.length === 1,
+      query: ({ path }: { path: unknown[] }) => path.length === 1,
     },
   }),
 ];

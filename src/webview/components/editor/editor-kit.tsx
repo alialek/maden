@@ -3,7 +3,6 @@
 import { type Value, TrailingBlockPlugin } from 'platejs';
 import { type TPlateEditor, useEditorRef } from 'platejs/react';
 
-import { ENABLE_AI_FEATURES } from '../../../shared/feature-flags';
 import { AIKit } from '@/components/editor/plugins/ai-kit';
 import { AlignKit } from '@/components/editor/plugins/align-kit';
 import { AutoformatKit } from '@/components/editor/plugins/autoformat-kit';
@@ -13,6 +12,7 @@ import { BlockMenuKit } from '@/components/editor/plugins/block-menu-kit';
 import { BlockPlaceholderKit } from '@/components/editor/plugins/block-placeholder-kit';
 import { CalloutKit } from '@/components/editor/plugins/callout-kit';
 import { CodeBlockKit } from '@/components/editor/plugins/code-block-kit';
+import { CodeDrawingKit } from '@/components/editor/plugins/code-drawing-kit';
 import { ColumnKit } from '@/components/editor/plugins/column-kit';
 import { CommentKit } from '@/components/editor/plugins/comment-kit';
 import { CursorOverlayKit } from '@/components/editor/plugins/cursor-overlay-kit';
@@ -22,6 +22,7 @@ import { DndKit } from '@/components/editor/plugins/dnd-kit';
 import { DocxKit } from '@/components/editor/plugins/docx-kit';
 import { EmojiKit } from '@/components/editor/plugins/emoji-kit';
 import { ExitBreakKit } from '@/components/editor/plugins/exit-break-kit';
+import { ExcalidrawKit } from '@/components/editor/plugins/excalidraw-kit';
 import { FixedToolbarKit } from '@/components/editor/plugins/fixed-toolbar-kit';
 import { FloatingToolbarKit } from '@/components/editor/plugins/floating-toolbar-kit';
 import { FontKit } from '@/components/editor/plugins/font-kit';
@@ -39,11 +40,13 @@ import { TocKit } from '@/components/editor/plugins/toc-kit';
 import { ToggleKit } from '@/components/editor/plugins/toggle-kit';
 
 export const EditorKit = [
-  ...(ENABLE_AI_FEATURES ? AIKit : []),
+  ...AIKit,
 
   // Elements
   ...BasicBlocksKit,
   ...CodeBlockKit,
+  ...CodeDrawingKit,
+  ...ExcalidrawKit,
   ...TableKit,
   ...ToggleKit,
   ...TocKit,
