@@ -1,0 +1,234 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - button "Editor appearance" [ref=e4] [cursor=pointer]:
+      - img
+    - generic [ref=e6]:
+      - toolbar [ref=e7]:
+        - generic [ref=e8]:
+          - generic [ref=e10]:
+            - button [disabled]:
+              - img
+            - button [disabled]:
+              - img
+          - button [ref=e13] [cursor=pointer]:
+            - img
+          - generic [ref=e15]:
+            - button [ref=e16] [cursor=pointer]:
+              - generic [ref=e17]:
+                - img
+              - generic [ref=e18]:
+                - img
+            - button "Bulleted list" [ref=e180] [cursor=pointer]:
+              - generic [ref=e181]: Bulleted list
+              - generic [ref=e182]:
+                - img
+            - generic [ref=e22]:
+              - button [ref=e23] [cursor=pointer]:
+                - img
+              - textbox [ref=e24]: "16"
+              - button [ref=e25] [cursor=pointer]:
+                - img
+          - generic [ref=e27]:
+            - button [ref=e28] [cursor=pointer]:
+              - img
+            - button [ref=e29] [cursor=pointer]:
+              - img
+            - button [ref=e30] [cursor=pointer]:
+              - img
+            - button [ref=e31] [cursor=pointer]:
+              - img
+            - button [ref=e32] [cursor=pointer]:
+              - img
+            - button [ref=e33] [cursor=pointer]:
+              - img
+            - button [ref=e34] [cursor=pointer]:
+              - img
+          - generic [ref=e36]:
+            - button [ref=e37] [cursor=pointer]:
+              - generic [ref=e38]:
+                - img
+              - generic [ref=e39]:
+                - img
+            - generic [ref=e40]:
+              - generic [ref=e41] [cursor=pointer]:
+                - img
+              - button [ref=e42] [cursor=pointer]:
+                - img [ref=e43]
+            - generic [ref=e45]:
+              - generic [ref=e46] [cursor=pointer]:
+                - img
+              - button [ref=e47] [cursor=pointer]:
+                - img [ref=e48]
+            - button [ref=e50] [cursor=pointer]:
+              - img
+            - button [ref=e51] [cursor=pointer]:
+              - img
+          - generic [ref=e53]:
+            - button [ref=e54] [cursor=pointer]:
+              - img
+            - button [ref=e55] [cursor=pointer]:
+              - generic [ref=e56]:
+                - img
+              - generic [ref=e57]:
+                - img
+            - button [ref=e58] [cursor=pointer]:
+              - generic [ref=e59]:
+                - img
+              - generic [ref=e60]:
+                - img
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - generic [ref=e64] [cursor=pointer]:
+                - img
+              - button [ref=e65] [cursor=pointer]:
+                - img [ref=e66]
+            - generic [ref=e68]:
+              - generic [ref=e69] [cursor=pointer]:
+                - img
+              - button [ref=e70] [cursor=pointer]:
+                - img [ref=e71]
+            - generic [ref=e73]:
+              - generic [ref=e74] [cursor=pointer]:
+                - img
+              - button [ref=e75] [cursor=pointer]:
+                - img [ref=e76]
+            - generic [ref=e78]:
+              - generic [ref=e79] [cursor=pointer]:
+                - img
+              - button [ref=e80] [cursor=pointer]:
+                - img [ref=e81]
+          - generic [ref=e84]:
+            - button [ref=e85] [cursor=pointer]:
+              - generic [ref=e86]:
+                - img
+              - generic [ref=e87]:
+                - img
+            - button [ref=e88] [cursor=pointer]:
+              - img
+            - button [ref=e89] [cursor=pointer]:
+              - img
+          - button [ref=e92] [cursor=pointer]:
+            - img
+          - generic [ref=e94]:
+            - button [ref=e95] [cursor=pointer]:
+              - img
+            - button [ref=e96] [cursor=pointer]:
+              - img
+          - generic [ref=e98]:
+            - button [ref=e99] [cursor=pointer]:
+              - img
+            - button "Editing" [ref=e100] [cursor=pointer]:
+              - generic [ref=e101]:
+                - img
+                - generic [ref=e102]: Editing
+              - generic [ref=e103]:
+                - img
+      - textbox [ref=e105]:
+        - generic [ref=e106]:
+          - button [ref=e110] [cursor=pointer]:
+            - img
+          - heading "untitled" [level=1] [ref=e112]:
+            - generic [ref=e114]: untitled
+        - generic [ref=e115]:
+          - button [ref=e119] [cursor=pointer]:
+            - img
+          - generic [ref=e123]: This is standalone browser mode for the Maden webview.
+        - generic [ref=e124]:
+          - button [ref=e128] [cursor=pointer]:
+            - img
+          - list [ref=e131]:
+            - listitem [ref=e132]:
+              - generic [ref=e134]: Turn into dropdown should open
+        - generic [ref=e135]:
+          - button [ref=e139] [cursor=pointer]:
+            - img
+          - list [ref=e142]:
+            - listitem [ref=e143]:
+              - generic [ref=e145]: Floating toolbar should remain visible while interacting
+        - generic [ref=e146]:
+          - button [ref=e150] [cursor=pointer]:
+            - img
+          - list [ref=e153]:
+            - listitem [ref=e154]:
+              - generic [ref=e156]: Drag handles should appear on block hover
+      - toolbar [ref=e183]:
+        - button "Ask AI" [ref=e186] [cursor=pointer]:
+          - img
+          - text: Ask AI
+        - generic [ref=e188]:
+          - button "Bulleted list" [expanded] [pressed] [ref=e204] [cursor=pointer]:
+            - generic [ref=e205]: Bulleted list
+            - generic [ref=e206]:
+              - img
+          - button [ref=e192] [cursor=pointer]:
+            - img
+          - button [ref=e193] [cursor=pointer]:
+            - img
+          - button [ref=e194] [cursor=pointer]:
+            - img
+          - button [ref=e195] [cursor=pointer]:
+            - img
+          - button [ref=e196] [cursor=pointer]:
+            - img
+          - button [ref=e197] [cursor=pointer]:
+            - img
+          - button [ref=e198] [cursor=pointer]:
+            - img
+        - generic [ref=e200]:
+          - button [ref=e201] [cursor=pointer]:
+            - img
+          - button [ref=e202] [cursor=pointer]:
+            - img
+          - button [ref=e203] [cursor=pointer]:
+            - img
+  - textbox [ref=e157]
+  - dialog [ref=e208]:
+    - menu "Turn into" [ref=e209]:
+      - generic [ref=e210]: Turn into
+      - menuitemradio "Text" [active] [ref=e211] [cursor=pointer]:
+        - img
+        - text: Text
+      - menuitemradio "Heading 1" [ref=e212] [cursor=pointer]:
+        - img
+        - text: Heading 1
+      - menuitemradio "Heading 2" [ref=e213] [cursor=pointer]:
+        - img
+        - text: Heading 2
+      - menuitemradio "Heading 3" [ref=e214] [cursor=pointer]:
+        - img
+        - text: Heading 3
+      - menuitemradio "Heading 4" [ref=e215] [cursor=pointer]:
+        - img
+        - text: Heading 4
+      - menuitemradio "Heading 5" [ref=e216] [cursor=pointer]:
+        - img
+        - text: Heading 5
+      - menuitemradio "Heading 6" [ref=e217] [cursor=pointer]:
+        - img
+        - text: Heading 6
+      - menuitemradio "Bulleted list" [checked] [ref=e218] [cursor=pointer]:
+        - generic:
+          - img
+        - img
+        - text: Bulleted list
+      - menuitemradio "Numbered list" [ref=e219] [cursor=pointer]:
+        - img
+        - text: Numbered list
+      - menuitemradio "To-do list" [ref=e220] [cursor=pointer]:
+        - img
+        - text: To-do list
+      - menuitemradio "Toggle list" [ref=e221] [cursor=pointer]:
+        - img
+        - text: Toggle list
+      - menuitemradio "Code" [ref=e222] [cursor=pointer]:
+        - img
+        - text: Code
+      - menuitemradio "Code Drawing" [ref=e223] [cursor=pointer]:
+        - img
+        - text: Code Drawing
+      - menuitemradio "Quote" [ref=e224] [cursor=pointer]:
+        - img
+        - text: Quote
+      - menuitemradio "3 columns" [ref=e225] [cursor=pointer]:
+        - img
+        - text: 3 columns

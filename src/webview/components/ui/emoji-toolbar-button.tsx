@@ -40,6 +40,12 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { ToolbarButton } from '@/components/ui/toolbar';
+import { withPortalPlacementGuard } from '@/components/ui/portal-placement';
+
+const EmojiPopoverContent = withPortalPlacementGuard<
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<typeof Popover.Content>
+>(Popover.Content);
 
 export function EmojiToolbarButton({
   options,
@@ -86,7 +92,7 @@ export function EmojiPopover({
       <Popover.Trigger asChild>{control}</Popover.Trigger>
 
       <Popover.Portal>
-        <Popover.Content className="z-100">{children}</Popover.Content>
+        <EmojiPopoverContent className="z-[110]">{children}</EmojiPopoverContent>
       </Popover.Portal>
     </Popover.Root>
   );

@@ -34,6 +34,12 @@ import { cn } from '@/lib/utils';
 
 import { ToolbarButton } from './toolbar';
 
+type TableAction = {
+  icon: React.ReactNode;
+  label: string;
+  onSelect: () => void;
+};
+
 export function TableToolbarButton(props: DropdownMenuProps) {
   const tableSelected = useEditorSelector(
     (editor) => editor.api.some({ match: { type: KEYS.table } }),
@@ -101,95 +107,67 @@ export function TableToolbarButton(props: DropdownMenuProps) {
             </DropdownMenuSubContent>
           </DropdownMenuSub>
 
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger
-              className="gap-2 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-              disabled={!tableSelected}
-            >
-              <div className="size-4" />
-              <span>Row</span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              <DropdownMenuItem
-                className="min-w-[180px]"
-                disabled={!tableSelected}
-                onSelect={() => {
+          <TableActionSubmenu
+            disabled={!tableSelected}
+            label="Row"
+            items={[
+              {
+                icon: <ArrowUp />,
+                label: 'Insert row before',
+                onSelect: () => {
                   tf.insert.tableRow({ before: true });
                   editor.tf.focus();
-                }}
-              >
-                <ArrowUp />
-                Insert row before
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="min-w-[180px]"
-                disabled={!tableSelected}
-                onSelect={() => {
+                },
+              },
+              {
+                icon: <ArrowDown />,
+                label: 'Insert row after',
+                onSelect: () => {
                   tf.insert.tableRow();
                   editor.tf.focus();
-                }}
-              >
-                <ArrowDown />
-                Insert row after
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="min-w-[180px]"
-                disabled={!tableSelected}
-                onSelect={() => {
+                },
+              },
+              {
+                icon: <XIcon />,
+                label: 'Delete row',
+                onSelect: () => {
                   tf.remove.tableRow();
                   editor.tf.focus();
-                }}
-              >
-                <XIcon />
-                Delete row
-              </DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
+                },
+              },
+            ]}
+          />
 
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger
-              className="gap-2 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-              disabled={!tableSelected}
-            >
-              <div className="size-4" />
-              <span>Column</span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              <DropdownMenuItem
-                className="min-w-[180px]"
-                disabled={!tableSelected}
-                onSelect={() => {
+          <TableActionSubmenu
+            disabled={!tableSelected}
+            label="Column"
+            items={[
+              {
+                icon: <ArrowLeft />,
+                label: 'Insert column before',
+                onSelect: () => {
                   tf.insert.tableColumn({ before: true });
                   editor.tf.focus();
-                }}
-              >
-                <ArrowLeft />
-                Insert column before
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="min-w-[180px]"
-                disabled={!tableSelected}
-                onSelect={() => {
+                },
+              },
+              {
+                icon: <ArrowRight />,
+                label: 'Insert column after',
+                onSelect: () => {
                   tf.insert.tableColumn();
                   editor.tf.focus();
-                }}
-              >
-                <ArrowRight />
-                Insert column after
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="min-w-[180px]"
-                disabled={!tableSelected}
-                onSelect={() => {
+                },
+              },
+              {
+                icon: <XIcon />,
+                label: 'Delete column',
+                onSelect: () => {
                   tf.remove.tableColumn();
                   editor.tf.focus();
-                }}
-              >
-                <XIcon />
-                Delete column
-              </DropdownMenuItem>
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
+                },
+              },
+            ]}
+          />
 
           <DropdownMenuItem
             className="min-w-[180px]"
@@ -205,6 +183,41 @@ export function TableToolbarButton(props: DropdownMenuProps) {
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function TableActionSubmenu({
+  disabled,
+  items,
+  label,
+}: {
+  disabled: boolean;
+  items: TableAction[];
+  label: string;
+}) {
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger
+        className="gap-2 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+        disabled={disabled}
+      >
+        <div className="size-4" />
+        <span>{label}</span>
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent>
+        {items.map((item) => (
+          <DropdownMenuItem
+            key={item.label}
+            className="min-w-[180px]"
+            disabled={disabled}
+            onSelect={item.onSelect}
+          >
+            {item.icon}
+            {item.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
   );
 }
 

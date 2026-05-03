@@ -59,3 +59,27 @@ export const createVirtualAnchor = (rect: MadenAnchorRect): VirtualAnchor => ({
     }),
   offsetWidth: rect.width,
 });
+
+export const getEditorTextContentWidth = (): number | undefined => {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return undefined;
+  }
+
+  const editorElement = document.querySelector('.page-content') as HTMLElement | null;
+  const fallbackElement = document.querySelector('[data-slate-editor]') as HTMLElement | null;
+  const element = editorElement ?? fallbackElement;
+  if (!element) return undefined;
+
+  const rect = element.getBoundingClientRect();
+  const styles = window.getComputedStyle(element);
+  const paddingLeft = Number.parseFloat(styles.paddingLeft) || 0;
+  const paddingRight = Number.parseFloat(styles.paddingRight) || 0;
+  const textWidth = rect.width - paddingLeft - paddingRight;
+  const viewportWidth = window.innerWidth - 32;
+
+  if (!Number.isFinite(textWidth) || textWidth <= 0) {
+    return undefined;
+  }
+
+  return Math.max(320, Math.min(textWidth, viewportWidth));
+};

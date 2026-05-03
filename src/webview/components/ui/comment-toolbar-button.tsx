@@ -5,7 +5,7 @@ import * as React from 'react';
 import { MessageSquareTextIcon } from 'lucide-react';
 import { useEditorRef } from 'platejs/react';
 
-import { commentPlugin } from '@/components/editor/plugins/comment-kit';
+import { commentPlugin } from '@/components/editor/plugins/comment-plugin';
 
 import { ToolbarButton } from './toolbar';
 

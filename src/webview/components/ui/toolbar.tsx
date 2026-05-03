@@ -15,6 +15,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { usePortalPlacementReady } from './portal-placement';
 
 export const Toolbar = React.forwardRef<
   React.ElementRef<typeof ToolbarPrimitive.Root>,
@@ -370,14 +371,19 @@ function TooltipContent({
   sideOffset = 4,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  const { placementReady, placementRef } = usePortalPlacementReady();
+
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content
         className={cn(
           'z-50 w-fit origin-(--radix-tooltip-content-transform-origin) text-balance rounded-md bg-primary px-3 py-1.5 text-primary-foreground text-xs',
+          !placementReady && '!pointer-events-none !opacity-0 !animate-none !transition-none',
           className
         )}
+        data-maden-placement-ready={placementReady ? 'true' : undefined}
         data-slot="tooltip-content"
+        ref={placementRef}
         sideOffset={sideOffset}
         {...props}
       >

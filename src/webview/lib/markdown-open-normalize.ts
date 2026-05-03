@@ -1,20 +1,4 @@
-const getHtmlAttribute = (tag: string, attribute: string): string | null => {
-  const escapedAttribute = attribute.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = tag.match(
-    new RegExp(`${escapedAttribute}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i')
-  );
-
-  return match?.[1] ?? match?.[2] ?? match?.[3] ?? null;
-};
-
-const imageTagToMarkdown = (imgTag: string): string | null => {
-  const src = getHtmlAttribute(imgTag, 'src');
-  if (!src) return null;
-
-  const alt = (getHtmlAttribute(imgTag, 'alt') ?? '').replace(/\]/g, '\\]');
-  const safeSrc = src.replace(/>/g, '%3E');
-  return `![${alt}](<${safeSrc}>)`;
-};
+import { imageTagToMarkdown } from '@/lib/html-markdown';
 
 const normalizeImageParagraph = (inner: string): string | null => {
   const pieces: string[] = [];
@@ -144,13 +128,18 @@ const shouldEscapeAngleToken = (token: string): boolean => {
   return false;
 };
 
+const replaceEscapedAngleTokens = (
+  source: string,
+  replacement: (inner: string) => string
+): string =>
+  source.replace(/\\<([^<>\n]+)>/g, (match, inner: string) => {
+    const token = `<${inner}>`;
+    return shouldEscapeAngleToken(token) ? replacement(inner) : match;
+  });
+
 export const escapeMarkdownPlaceholderAngles = (markdown: string): string =>
   applyOutsideFencedCodeBlocks(markdown, (source) =>
-    source
-      .replace(/\\<([^<>\n]+)>/g, (match, inner: string) => {
-        const token = `<${inner}>`;
-        return shouldEscapeAngleToken(token) ? `&lt;${inner}&gt;` : match;
-      })
+    replaceEscapedAngleTokens(source, (inner) => `&lt;${inner}&gt;`)
       .replace(/<[^<>\n]+>/g, (token) => {
         if (!shouldEscapeAngleToken(token)) {
           return token;
@@ -162,10 +151,7 @@ export const escapeMarkdownPlaceholderAngles = (markdown: string): string =>
 
 export const unescapeMarkdownPlaceholderAngles = (markdown: string): string =>
   applyOutsideFencedCodeBlocks(markdown, (source) =>
-    source.replace(/\\<([^<>\n]+)>/g, (match, inner: string) => {
-      const token = `<${inner}>`;
-      return shouldEscapeAngleToken(token) ? token : match;
-    })
+    replaceEscapedAngleTokens(source, (inner) => `<${inner}>`)
   );
 
 const isMarkdownTableLine = (line: string): boolean => {

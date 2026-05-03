@@ -2,8 +2,6 @@
 
 import * as React from 'react';
 
-import type { DropdownMenuProps } from '@radix-ui/react-dropdown-menu';
-
 import {
   CalendarIcon,
   ChevronRightIcon,
@@ -32,16 +30,23 @@ import { KEYS } from 'platejs';
 import { type PlateEditor, useEditorRef } from 'platejs/react';
 
 import {
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from '@/components/ui/dropdown-menu';
+  Popover,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Popover as PopoverPrimitive } from 'radix-ui';
 import {
   insertBlock,
   insertInlineElement,
 } from '@/components/editor/transforms';
-import { ToolbarDropdown } from '@/components/ui/toolbar-dropdown';
+import { cn } from '@/lib/utils';
+import { withPortalPlacementGuard } from '@/components/ui/portal-placement';
 
-import { ToolbarButton, ToolbarMenuGroup } from './toolbar';
+import { ToolbarButton } from './toolbar';
+
+const InsertPopoverContent = withPortalPlacementGuard<
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
+>(PopoverPrimitive.Content);
 
 type Group = {
   group: string;
@@ -222,40 +227,60 @@ const groups: Group[] = [
   },
 ];
 
-export function InsertToolbarButton(props: DropdownMenuProps) {
+export function InsertToolbarButton(
+  props: Omit<React.ComponentProps<typeof Popover>, 'open' | 'onOpenChange'>
+) {
   const editor = useEditorRef();
+  const [open, setOpen] = React.useState(false);
 
   return (
-    <ToolbarDropdown
-      contentClassName="flex max-h-[500px] min-w-0 flex-col overflow-y-auto"
-      trigger={(open) => (
+    <Popover open={open} onOpenChange={setOpen} modal={false} {...props}>
+      <PopoverTrigger asChild>
         <ToolbarButton pressed={open} tooltip="Insert" isDropdown>
           <PlusIcon />
         </ToolbarButton>
-      )}
-      renderContent={({ close }) => (
-        <>
+      </PopoverTrigger>
+
+      <PopoverPrimitive.Portal>
+      <InsertPopoverContent
+        align="start"
+        className="z-[110]"
+        data-slot="popover-content"
+      >
+        <div
+          className="flex max-h-[500px] min-w-0 flex-col overflow-y-auto rounded-xl border border-border/70 bg-popover p-1 text-popover-foreground shadow-xl shadow-black/20"
+          role="menu"
+          aria-label="Insert"
+        >
           {groups.map(({ group, items: nestedItems }) => (
-            <ToolbarMenuGroup key={group} label={group}>
+            <div key={group} className="my-1.5">
+              <div className="select-none px-1.5 py-1 font-semibold text-muted-foreground text-xs">
+                {group}
+              </div>
               {nestedItems.map(({ icon, label, value, onSelect }) => (
-                <DropdownMenuItem
+                <button
                   key={value}
-                  className="min-w-[180px]"
-                  onSelect={() => {
+                  type="button"
+                  role="menuitem"
+                  data-slot="popover-menu-item"
+                  className={cn(
+                    "relative flex min-w-[180px] w-full cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-left text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+                  )}
+                  onClick={() => {
                     onSelect(editor, value);
                     editor.tf.focus();
-                    close();
+                    setOpen(false);
                   }}
                 >
                   {icon}
                   {label}
-                </DropdownMenuItem>
+                </button>
               ))}
-            </ToolbarMenuGroup>
+            </div>
           ))}
-        </>
-      )}
-      {...props}
-    />
+        </div>
+      </InsertPopoverContent>
+      </PopoverPrimitive.Portal>
+    </Popover>
   );
 }

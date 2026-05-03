@@ -1,6 +1,9 @@
 import path from 'node:path';
 
-export { reconcileMarkdownPreservingUnchangedFormatting } from '../shared/markdown-format-reconcile';
+export {
+  compactMarkdownTableWhitespace,
+  reconcileMarkdownPreservingUnchangedFormatting,
+} from '../shared/markdown-format-reconcile';
 
 export const DEFAULT_DEBOUNCE_MS = 300;
 

@@ -47,21 +47,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { BasicMarksKit } from '@/components/editor/plugins/basic-marks-kit';
-import {
-  type TDiscussion,
-  discussionPlugin,
-} from '@/components/editor/plugins/discussion-kit';
+import { discussionPlugin } from '@/components/editor/plugins/discussion-plugin';
+import type {
+  TComment,
+  TDiscussion,
+} from '@/components/editor/plugins/discussion-types';
 
 import { Editor, EditorContainer } from './editor';
-
-export type TComment = {
-  id: string;
-  contentRich: Value;
-  createdAt: Date;
-  discussionId: string;
-  isEdited: boolean;
-  userId: string;
-};
+import { CommentAuthorHeader } from './comment-author-header';
 
 export function Comment(props: {
   comment: TComment;
@@ -186,21 +179,12 @@ export function Comment(props: {
       onMouseLeave={() => setHovering(false)}
     >
       <div className="relative flex items-center">
-        <Avatar className="size-5">
-          <AvatarImage alt={userInfo?.name} src={userInfo?.avatarUrl} />
-          <AvatarFallback>{userInfo?.name?.[0]}</AvatarFallback>
-        </Avatar>
-        <h4 className="mx-2 font-semibold text-sm leading-none">
-          {/* Replace to your own backend or refer to potion */}
-          {userInfo?.name}
-        </h4>
-
-        <div className="text-muted-foreground/80 text-xs leading-none">
-          <span className="mr-1">
-            {formatCommentDate(new Date(comment.createdAt))}
-          </span>
-          {comment.isEdited && <span>(edited)</span>}
-        </div>
+        <CommentAuthorHeader
+          avatarUrl={userInfo?.avatarUrl}
+          edited={comment.isEdited}
+          name={userInfo?.name}
+          timestamp={formatCommentDate(new Date(comment.createdAt))}
+        />
 
         {isMyComment && (hovering || dropdownOpen) && (
           <div className="absolute top-0 right-0 flex space-x-1">

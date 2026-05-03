@@ -1,6 +1,102 @@
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+
+@theme inline {
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(
+        --radix-accordion-content-height,
+        var(--accordion-panel-height, auto)
+      );
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(
+        --radix-accordion-content-height,
+        var(--accordion-panel-height, auto)
+      );
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+/* Inlined from shadcn/tailwind.css to keep Tailwind variants without a runtime shadcn dependency. */
+@custom-variant data-open {
+  &:where([data-state="open"]),
+  &:where([data-open]:not([data-open="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-closed {
+  &:where([data-state="closed"]),
+  &:where([data-closed]:not([data-closed="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-checked {
+  &:where([data-state="checked"]),
+  &:where([data-checked]:not([data-checked="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-unchecked {
+  &:where([data-state="unchecked"]),
+  &:where([data-unchecked]:not([data-unchecked="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-selected {
+  &:where([data-selected="true"]) {
+    @slot;
+  }
+}
+
+@custom-variant data-disabled {
+  &:where([data-disabled="true"]),
+  &:where([data-disabled]:not([data-disabled="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-active {
+  &:where([data-state="active"]),
+  &:where([data-active]:not([data-active="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-horizontal {
+  &:where([data-orientation="horizontal"]) {
+    @slot;
+  }
+}
+
+@custom-variant data-vertical {
+  &:where([data-orientation="vertical"]) {
+    @slot;
+  }
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -57,7 +153,14 @@
       var(--vscode-editor-foreground, var(--foreground)) 20%,
       transparent
     );
-    --maden-hover-bg: var(--vscode-list-hoverBackground, var(--accent));
+    --maden-hover-bg: var(
+      --vscode-list-hoverBackground,
+      color-mix(
+        in oklab,
+        var(--vscode-editor-foreground, var(--foreground)) 12%,
+        transparent
+      )
+    );
     --maden-hover-foreground: var(--vscode-list-hoverForeground, var(--foreground));
     --maden-command-hover-bg: var(
       --vscode-list-hoverBackground,
@@ -737,11 +840,13 @@
   [data-slot="context-menu-checkbox-item"][data-highlighted],
   [data-slot="context-menu-sub-trigger"]:hover,
   [data-slot="context-menu-sub-trigger"][data-highlighted],
+  [data-slot="popover-menu-item"]:hover,
+  [data-slot="popover-menu-item"]:focus-visible,
   [data-slot="select-item"]:hover,
   [data-slot="select-item"][data-highlighted],
   [data-slot="select-item"]:focus {
-    background-color: var(--accent);
-    color: var(--accent-foreground);
+    background-color: var(--maden-hover-bg);
+    color: var(--maden-hover-foreground);
   }
 
   [data-slot="dropdown-menu-item"]:hover svg,
@@ -760,10 +865,12 @@
   [data-slot="context-menu-checkbox-item"][data-highlighted] svg,
   [data-slot="context-menu-sub-trigger"]:hover svg,
   [data-slot="context-menu-sub-trigger"][data-highlighted] svg,
+  [data-slot="popover-menu-item"]:hover svg,
+  [data-slot="popover-menu-item"]:focus-visible svg,
   [data-slot="select-item"]:hover svg,
   [data-slot="select-item"][data-highlighted] svg,
   [data-slot="select-item"]:focus svg {
-    color: var(--accent-foreground);
+    color: var(--maden-hover-foreground);
   }
 
   [data-slot="dropdown-menu-item"]:hover,
@@ -782,6 +889,8 @@
   [data-slot="context-menu-checkbox-item"][data-highlighted],
   [data-slot="context-menu-sub-trigger"]:hover,
   [data-slot="context-menu-sub-trigger"][data-highlighted],
+  [data-slot="popover-menu-item"]:hover,
+  [data-slot="popover-menu-item"]:focus-visible,
   [data-slot="select-item"]:hover,
   [data-slot="select-item"][data-highlighted],
   [data-slot="select-item"]:focus {
@@ -861,5 +970,6 @@
     top: 0;
     left: 0;
     right: 0;
+    z-index: 90;
   }
 }

@@ -44,6 +44,45 @@ const getNeighborIndexes = (
   return picked;
 };
 
+export const getCurrentAiBlockEntry = (editor: PlateEditor) => {
+  const blockFromCurrentSelection = editor.selection
+    ? editor.api.block({ at: editor.selection, highest: true })
+    : null;
+  const chatSelection = editor.getOption(AIChatPlugin, 'chatSelection') as
+    | { anchor?: { path?: unknown }; focus?: { path?: unknown } }
+    | undefined;
+  const blockFromChatSelection = (() => {
+    const anchorPath = chatSelection?.anchor?.path ?? chatSelection?.focus?.path;
+    if (!anchorPath) return null;
+    try {
+      return editor.api.block({ at: anchorPath as any, highest: true });
+    } catch {
+      return null;
+    }
+  })();
+
+  return (
+    blockFromCurrentSelection ??
+    blockFromChatSelection ??
+    editor.api.block({ highest: true }) ??
+    null
+  );
+};
+
+export const getSelectedAiBlocks = (editor: PlateEditor) =>
+  editor
+    .getApi(BlockSelectionPlugin)
+    .blockSelection.getNodes({ selectionFallback: true, sort: true })
+    .map(([block]) => block);
+
+export const getAiTargetBlocks = (editor: PlateEditor): any[] => {
+  const blocks = getSelectedAiBlocks(editor);
+  if (blocks.length > 0) return blocks;
+
+  const currentBlock = getCurrentAiBlockEntry(editor);
+  return currentBlock ? [currentBlock[0]] : [];
+};
+
 export const getSelectionContextInput = (
   editor: PlateEditor,
   _isSelecting: boolean
@@ -52,10 +91,7 @@ export const getSelectionContextInput = (
     const topLevelChildren = Array.isArray(editor.children)
       ? (editor.children as any[])
       : [];
-    const selectedBlocks = editor
-      .getApi(BlockSelectionPlugin)
-      .blockSelection.getNodes({ selectionFallback: true, sort: true })
-      .map(([block]) => block);
+    const selectedBlocks = getSelectedAiBlocks(editor);
     const selectedIds = selectedBlocks
       .map((block) => (block as { id?: unknown }).id)
       .filter((id): id is string => typeof id === 'string');
@@ -67,26 +103,7 @@ export const getSelectionContextInput = (
       .filter(({ id }) => typeof id === 'string' && selectedIds.includes(id))
       .map(({ index }) => index);
 
-    const blockFromCurrentSelection = editor.selection
-      ? editor.api.block({ at: editor.selection, highest: true })
-      : null;
-    const chatSelection = editor.getOption(AIChatPlugin, 'chatSelection') as
-      | { anchor?: { path?: unknown }; focus?: { path?: unknown } }
-      | undefined;
-    const blockFromChatSelection = (() => {
-      const anchorPath = chatSelection?.anchor?.path ?? chatSelection?.focus?.path;
-      if (!anchorPath) return null;
-      try {
-        return editor.api.block({ at: anchorPath as any, highest: true });
-      } catch {
-        return null;
-      }
-    })();
-    const currentBlock =
-      blockFromCurrentSelection ??
-      blockFromChatSelection ??
-      editor.api.block({ highest: true }) ??
-      null;
+    const currentBlock = getCurrentAiBlockEntry(editor);
     const currentIndex = currentBlock
       ? topLevelChildren.findIndex((block) => block === currentBlock[0])
       : topLevelChildren.findIndex((block) => Boolean(blockPlainText(block)));

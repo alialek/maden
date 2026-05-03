@@ -2,24 +2,16 @@
 
 import * as React from 'react';
 
-import {
-  BoldIcon,
-  Code2Icon,
-  ItalicIcon,
-  StrikethroughIcon,
-  UnderlineIcon,
-  WandSparklesIcon,
-} from 'lucide-react';
-import { KEYS } from 'platejs';
+import { WandSparklesIcon } from 'lucide-react';
 import { useEditorReadOnly } from 'platejs/react';
 
 import { useAiEnabled } from '@/hooks/use-ai-enabled';
 
 import { AIToolbarButton } from './ai-toolbar-button';
+import { BasicMarkToolbarButtons } from './basic-mark-toolbar-buttons';
 import { CommentToolbarButton } from './comment-toolbar-button';
 import { InlineEquationToolbarButton } from './equation-toolbar-button';
 import { LinkToolbarButton } from './link-toolbar-button';
-import { MarkToolbarButton } from './mark-toolbar-button';
 import { MoreToolbarButton } from './more-toolbar-button';
 import { SuggestionToolbarButton } from './suggestion-toolbar-button';
 import { ToolbarGroup } from './toolbar';
@@ -45,31 +37,7 @@ export function FloatingToolbarButtons() {
           <ToolbarGroup>
             <TurnIntoToolbarButton />
 
-            <MarkToolbarButton nodeType={KEYS.bold} tooltip="Bold (⌘+B)">
-              <BoldIcon />
-            </MarkToolbarButton>
-
-            <MarkToolbarButton nodeType={KEYS.italic} tooltip="Italic (⌘+I)">
-              <ItalicIcon />
-            </MarkToolbarButton>
-
-            <MarkToolbarButton
-              nodeType={KEYS.underline}
-              tooltip="Underline (⌘+U)"
-            >
-              <UnderlineIcon />
-            </MarkToolbarButton>
-
-            <MarkToolbarButton
-              nodeType={KEYS.strikethrough}
-              tooltip="Strikethrough (⌘+⇧+M)"
-            >
-              <StrikethroughIcon />
-            </MarkToolbarButton>
-
-            <MarkToolbarButton nodeType={KEYS.code} tooltip="Code (⌘+E)">
-              <Code2Icon />
-            </MarkToolbarButton>
+            <BasicMarkToolbarButtons />
 
             <InlineEquationToolbarButton />
 

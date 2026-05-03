@@ -1,24 +1,7 @@
 import { escapeMarkdownPlaceholderAngles } from '@/lib/markdown-open-normalize';
+import { getHtmlAttribute, imageTagToMarkdown } from '@/lib/html-markdown';
 
 const normalizeLineEndings = (value: string) => value.replace(/\r\n/g, '\n');
-
-const getHtmlAttribute = (tag: string, attribute: string): string | null => {
-  const escapedAttribute = attribute.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = tag.match(
-    new RegExp(`${escapedAttribute}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i')
-  );
-
-  return match?.[1] ?? match?.[2] ?? match?.[3] ?? null;
-};
-
-const imageTagToMarkdown = (imgTag: string): string | null => {
-  const src = getHtmlAttribute(imgTag, 'src');
-  if (!src) return null;
-
-  const alt = (getHtmlAttribute(imgTag, 'alt') ?? '').replace(/\]/g, '\\]');
-  const safeSrc = src.replace(/>/g, '%3E');
-  return `![${alt}](<${safeSrc}>)`;
-};
 
 const LINE_BREAK_TOKEN = '__MADEN_HTML_BR__';
 

@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import {
   type SuggestionConfig,
   suggestionPlugin,
-} from '@/components/editor/plugins/suggestion-kit';
+} from '@/components/editor/plugins/suggestion-plugin';
 
 const suggestionVariants = cva(
   cn('maden-suggestion no-underline transition-colors duration-200'),

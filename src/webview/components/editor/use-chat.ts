@@ -3,11 +3,9 @@
 import * as React from 'react';
 
 import { type UseChatHelpers, useChat as useBaseChat } from '@ai-sdk/react';
-import { AIChatPlugin } from '@platejs/ai/react';
 import { type UIMessage } from 'ai';
 import { useEditorRef, usePluginOption } from 'platejs/react';
 
-import { aiChatPlugin } from '@/components/editor/plugins/ai-kit';
 import {
   addCommentDiscussionFromText,
   addStructuredTextBelow,
@@ -17,6 +15,7 @@ import {
   streamStructuredAddDelta,
   type MessageDataPart,
 } from '@/components/editor/ai-editor-actions';
+import { madenAiChatPlugin } from '@/components/editor/plugins/ai-chat-plugin';
 import { extractAiMessageText } from '../../../shared/ai-message-normalization';
 import { createAiCommandTransport } from '@/lib/ai-command-request';
 import {
@@ -53,12 +52,12 @@ const getLatestAssistantText = (messages: ChatMessage[]) => {
 
 export const useChat = () => {
   const editor = useEditorRef();
-  const options = usePluginOption(aiChatPlugin, 'chatOptions');
+  const options = usePluginOption(madenAiChatPlugin, 'chatOptions');
 
   const chat = useBaseChat<ChatMessage>({
     id: 'editor',
     transport: createAiCommandTransport(
-      () => editor.getOptions(aiChatPlugin).chatOptions?.body as
+      () => editor.getOptions(madenAiChatPlugin).chatOptions?.body as
         | Record<string, unknown>
         | undefined
     ),
@@ -77,7 +76,7 @@ export const useChat = () => {
   } | null>(null);
 
   React.useEffect(() => {
-    const toolName = editor.getOption(AIChatPlugin, 'toolName');
+    const toolName = editor.getOption(madenAiChatPlugin, 'toolName');
     if (toolName !== 'comment') {
       streamedStructuredRef.current = null;
       return;
@@ -127,7 +126,7 @@ export const useChat = () => {
   }, [chat.messages, chat.status, editor]);
 
   React.useEffect(() => {
-    const toolName = editor.getOption(AIChatPlugin, 'toolName');
+    const toolName = editor.getOption(madenAiChatPlugin, 'toolName');
     if (toolName !== 'comment' || chat.status !== 'ready') {
       return;
     }
@@ -172,7 +171,7 @@ export const useChat = () => {
   }, [chat.messages, chat.status, editor]);
 
   React.useEffect(() => {
-    editor.setOption(AIChatPlugin, 'chat', chat as any);
+    editor.setOption(madenAiChatPlugin, 'chat', chat as any);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chat.status, chat.messages, chat.error]);
 

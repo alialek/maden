@@ -11,6 +11,8 @@ import {
   deserializeMarkdownToPlateValue,
   serializePlateValueWithConversionEditor,
 } from '../../src/webview/lib/markdown-plate-conversion';
+import { reconcileMarkdownPreservingUnchangedFormatting } from '../../src/shared/markdown-format-reconcile';
+import { findTextLeaf } from './test-node-helpers';
 
 describe('@platejs/markdown roundtrip', () => {
   it('deserializes and serializes common markdown blocks', () => {
@@ -275,6 +277,38 @@ describe('@platejs/markdown roundtrip', () => {
     });
   });
 
+  it('preserves inserted empty paragraphs through host save reconcile', () => {
+    const previous = ['A', '', 'B', ''].join('\n');
+    const next = serializePlateValueWithConversionEditor([
+      {
+        children: [{ text: 'A' }],
+        type: KEYS.p,
+      },
+      {
+        children: [{ text: '' }],
+        type: KEYS.p,
+      },
+      {
+        children: [{ text: '' }],
+        type: KEYS.p,
+      },
+      {
+        children: [{ text: 'B' }],
+        type: KEYS.p,
+      },
+    ]);
+    const saved = reconcileMarkdownPreservingUnchangedFormatting(previous, next);
+    const reopened = deserializeMarkdownToPlateValue(saved).value;
+
+    expect(saved).toContain('\u200B');
+    expect(reopened).toMatchObject([
+      { children: [{ text: 'A' }], type: KEYS.p },
+      { children: [{ text: '' }], type: KEYS.p },
+      { children: [{ text: '' }], type: KEYS.p },
+      { children: [{ text: 'B' }], type: KEYS.p },
+    ]);
+  });
+
   it('continues parsing after angle-bracket placeholders in requirement templates', () => {
     const editor = createPlateEditor({
       plugins: MarkdownKit,
@@ -438,28 +472,6 @@ describe('@platejs/markdown roundtrip', () => {
     const value = deserializeMd(editor, normalizeOpenDocumentMarkdown(source));
     const serialized = serializeMd(editor, { value });
     const valueJson = JSON.stringify(value);
-    const findTextLeaf = (nodes: unknown[], text: string): Record<string, unknown> | null => {
-      for (const node of nodes) {
-        if (!node || typeof node !== 'object') {
-          continue;
-        }
-
-        const candidate = node as { children?: unknown[]; text?: unknown };
-        if (candidate.text === text) {
-          return candidate as Record<string, unknown>;
-        }
-
-        if (Array.isArray(candidate.children)) {
-          const nested = findTextLeaf(candidate.children, text);
-          if (nested) {
-            return nested;
-          }
-        }
-      }
-
-      return null;
-    };
-
     expect(valueJson).toContain('"bold":true');
     expect(valueJson).toContain('"text":"\\n"');
     expect(findTextLeaf(value, '1.1. Цель')).toMatchObject({ bold: true });

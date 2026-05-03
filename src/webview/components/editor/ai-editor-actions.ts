@@ -14,8 +14,8 @@ import { BlockSelectionPlugin } from '@platejs/selection/react';
 import { type TNode, getPluginType, KEYS, nanoid, NodeApi, PathApi, TextApi } from 'platejs';
 import type { PlateEditor } from 'platejs/react';
 
-import { commentPlugin } from '@/components/editor/plugins/comment-kit';
-import { discussionPlugin } from '@/components/editor/plugins/discussion-kit';
+import { commentPlugin } from '@/components/editor/plugins/comment-plugin';
+import { discussionPlugin } from '@/components/editor/plugins/discussion-plugin';
 import { stripStructuredResponseWrappers } from '@/lib/structured-response';
 
 export type ToolName = 'comment' | 'edit' | 'generate';
@@ -59,6 +59,63 @@ const getInsertionPath = (editor: PlateEditor) => {
   }
 
   return [editor.children.length];
+};
+
+const createAiDiscussion = ({
+  at,
+  commentText,
+  documentContent,
+  editor,
+  split,
+  transient = false,
+}: {
+  at: unknown;
+  commentText: string;
+  documentContent: string;
+  editor: PlateEditor;
+  split: boolean;
+  transient?: boolean;
+}): string => {
+  const discussionId = nanoid();
+  const discussions = editor.getOption(discussionPlugin, 'discussions') || [];
+  const userId = editor.getOption(discussionPlugin, 'currentUserId');
+
+  const newComment = {
+    contentRich: [{ children: [{ text: commentText }], type: 'p' }],
+    createdAt: new Date(),
+    discussionId,
+    id: nanoid(),
+    isEdited: false,
+    userId,
+  };
+
+  const newDiscussion = {
+    comments: [newComment],
+    createdAt: new Date(),
+    documentContent,
+    id: discussionId,
+    isResolved: false,
+    userId,
+  };
+
+  editor.setOption(discussionPlugin, 'discussions', [...discussions, newDiscussion]);
+
+  editor.tf.withMerging(() => {
+    editor.tf.setNodes(
+      {
+        [getCommentKey(newDiscussion.id)]: true,
+        ...(transient ? { [getTransientCommentKey()]: true } : {}),
+        [KEYS.comment]: true,
+      },
+      {
+        at: at as never,
+        match: TextApi.isText,
+        split,
+      }
+    );
+  });
+
+  return newDiscussion.id;
 };
 
 export const beginStreamingInsert = (editor: PlateEditor) => {
@@ -141,48 +198,19 @@ export const addCommentDiscussionFromText = (
   const blockNode = blockEntry[0];
   const blockPath = blockEntry[1];
   const documentContent = NodeApi.string(blockNode).trim();
-  const discussionId = nanoid();
-  const discussions = editor.getOption(discussionPlugin, 'discussions') || [];
-
-  const newComment = {
-    contentRich: [{ children: [{ text: normalizedComment }], type: 'p' }],
-    createdAt: new Date(),
-    discussionId,
-    id: nanoid(),
-    isEdited: false,
-    userId: editor.getOption(discussionPlugin, 'currentUserId'),
-  };
-
-  const newDiscussion = {
-    comments: [newComment],
-    createdAt: new Date(),
+  const discussionId = createAiDiscussion({
+    at: (chatSelection as any) ?? blockPath,
+    commentText: normalizedComment,
     documentContent,
-    id: discussionId,
-    isResolved: false,
-    userId: editor.getOption(discussionPlugin, 'currentUserId'),
-  };
-
-  editor.setOption(discussionPlugin, 'discussions', [...discussions, newDiscussion]);
-
-  editor.tf.withMerging(() => {
-    editor.tf.setNodes(
-      {
-        [getCommentKey(newDiscussion.id)]: true,
-        [KEYS.comment]: true,
-      },
-      {
-        at: (chatSelection as any) ?? blockPath,
-        match: TextApi.isText,
-        split: Boolean(chatSelection),
-      }
-    );
+    editor,
+    split: Boolean(chatSelection),
   });
 
-  editor.setOption(commentPlugin, 'activeId', newDiscussion.id);
+  editor.setOption(commentPlugin, 'activeId', discussionId);
   editor.getApi(BlockSelectionPlugin).blockSelection.deselect();
   editor.getApi(AIChatPlugin).aiChat.hide();
 
-  return newDiscussion.id;
+  return discussionId;
 };
 
 export const handleAiDataPart = (
@@ -227,44 +255,15 @@ export const handleAiDataPart = (
 
     if (!range) return console.warn('No range found for AI comment');
 
-    const discussions = editor.getOption(discussionPlugin, 'discussions') || [];
-
-    const discussionId = nanoid();
-    const newComment = {
-      contentRich: [{ children: [{ text: aiComment.comment }], type: 'p' }],
-      createdAt: new Date(),
-      discussionId,
-      id: nanoid(),
-      isEdited: false,
-      userId: editor.getOption(discussionPlugin, 'currentUserId'),
-    };
-
-    const newDiscussion = {
-      comments: [newComment],
-      createdAt: new Date(),
+    createAiDiscussion({
+      at: range,
+      commentText: aiComment.comment,
       documentContent: deserializeMd(editor, aiComment.content)
         .map((node: TNode) => NodeApi.string(node))
         .join('\n'),
-      id: discussionId,
-      isResolved: false,
-      userId: editor.getOption(discussionPlugin, 'currentUserId'),
-    };
-
-    editor.setOption(discussionPlugin, 'discussions', [...discussions, newDiscussion]);
-
-    editor.tf.withMerging(() => {
-      editor.tf.setNodes(
-        {
-          [getCommentKey(newDiscussion.id)]: true,
-          [getTransientCommentKey()]: true,
-          [KEYS.comment]: true,
-        },
-        {
-          at: range,
-          match: TextApi.isText,
-          split: true,
-        }
-      );
+      editor,
+      split: true,
+      transient: true,
     });
   }
 };

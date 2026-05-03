@@ -2,7 +2,6 @@
 
 import { withAIBatch } from '@platejs/ai';
 import {
-  AIChatPlugin,
   AIPlugin,
   applyAISuggestions,
   streamInsertChunk,
@@ -15,18 +14,11 @@ import { AILoadingBar, AIMenu } from '@/components/ui/ai-menu';
 import { AIAnchorElement, AILeaf } from '@/components/ui/ai-node';
 
 import { stripStructuredResponseWrappers, useChat } from '../use-chat';
+import { madenAiChatPlugin } from './ai-chat-plugin';
 import { CursorOverlayKit } from './cursor-overlay-kit';
 import { MarkdownKit } from './markdown-kit';
 
-export const aiChatPlugin = AIChatPlugin.extend({
-  options: {
-    chatOptions: {
-      api: '/api/ai/command',
-      body: {},
-    },
-    madenAnchorPath: null,
-    madenAnchorRect: null,
-  },
+export const aiChatPlugin = madenAiChatPlugin.extend({
   render: {
     afterContainer: AILoadingBar,
     afterEditable: AIMenu,
@@ -36,8 +28,8 @@ export const aiChatPlugin = AIChatPlugin.extend({
   useHooks: ({ editor, getOption }) => {
     useChat();
 
-    const mode = usePluginOption(AIChatPlugin, 'mode');
-    const toolName = usePluginOption(AIChatPlugin, 'toolName');
+    const mode = usePluginOption(madenAiChatPlugin, 'mode');
+    const toolName = usePluginOption(madenAiChatPlugin, 'toolName');
     useChatChunk({
       onChunk: ({ chunk, isFirst, nodes, text: content }) => {
         if (isFirst && mode === 'insert') {
@@ -52,7 +44,7 @@ export const aiChatPlugin = AIChatPlugin.extend({
               }
             );
           });
-          editor.setOption(AIChatPlugin, 'streaming', true);
+          editor.setOption(madenAiChatPlugin, 'streaming', true);
         }
 
         if (mode === 'insert' && nodes.length > 0) {
@@ -87,10 +79,10 @@ export const aiChatPlugin = AIChatPlugin.extend({
         }
       },
       onFinish: () => {
-        editor.setOption(AIChatPlugin, 'streaming', false);
-        editor.setOption(AIChatPlugin, '_blockChunks', '');
-        editor.setOption(AIChatPlugin, '_blockPath', null);
-        editor.setOption(AIChatPlugin, '_mdxName', null);
+        editor.setOption(madenAiChatPlugin, 'streaming', false);
+        editor.setOption(madenAiChatPlugin, '_blockChunks', '');
+        editor.setOption(madenAiChatPlugin, '_blockPath', null);
+        editor.setOption(madenAiChatPlugin, '_mdxName', null);
       },
     });
   },

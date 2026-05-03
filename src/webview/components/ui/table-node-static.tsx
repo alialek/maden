@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import type { TTableCellElement, TTableElement } from 'platejs';
 import type { SlateElementProps } from 'platejs/static';
 
@@ -7,6 +5,11 @@ import { BaseTablePlugin } from '@platejs/table';
 import { SlateElement } from 'platejs/static';
 
 import { cn } from '@/lib/utils';
+
+import {
+  getTableCellAttributes,
+  getTableCellStyle,
+} from './table-cell-props';
 
 export function TableElementStatic({
   children,
@@ -71,18 +74,8 @@ export function TableCellElementStatic({
             borders.top?.size && 'before:border-t before:border-t-border'
           )
       )}
-      style={
-        {
-          '--cellBackground': element.background,
-          maxWidth: width ? width : '100%',
-          minWidth: width ? width : 'max-content',
-        } as React.CSSProperties
-      }
-      attributes={{
-        ...props.attributes,
-        colSpan: api.table.getColSpan(element),
-        rowSpan: api.table.getRowSpan(element),
-      }}
+      style={getTableCellStyle(element, width)}
+      attributes={getTableCellAttributes(props.attributes, element, api)}
     >
       <div
         className="relative z-20 box-border h-full px-4 py-2 whitespace-normal break-words"

@@ -1,5 +1,7 @@
 import { KEYS, type TElement, type Value } from 'platejs';
 
+import { coerceSlateTextLeaf } from './slate-node-normalize';
+
 const DETAILS_REGEX = /<details\b[^>]*>([\s\S]*?)<\/details>/gi;
 const SUMMARY_REGEX = /<summary\b[^>]*>([\s\S]*?)<\/summary>/i;
 
@@ -25,24 +27,6 @@ const stripMarkdownWrappers = (value: string) =>
     .replace(/^\s*(\*\*|__|\*|_)+\s*/, '')
     .replace(/\s*(\*\*|__|\*|_)+\s*$/, '')
     .trim();
-
-const toTextNode = (value: unknown): { text: string } => {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    const candidate = value as { text?: unknown };
-    if (typeof candidate.text === 'string') {
-      return {
-        ...(candidate as Record<string, unknown>),
-        text: candidate.text,
-      };
-    }
-  }
-
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    return { text: String(value) };
-  }
-
-  return { text: '' };
-};
 
 const normalizeChildren = (children: unknown): Array<{ text: string } | TElement> => {
   if (!Array.isArray(children) || children.length === 0) {
@@ -94,12 +78,12 @@ const normalizeElementNode = (node: unknown, topLevel = true): TElement | { text
   }
 
   if (!topLevel) {
-    return toTextNode(node);
+    return coerceSlateTextLeaf(node);
   }
 
   return {
     type: KEYS.p,
-    children: [toTextNode(node)],
+    children: [coerceSlateTextLeaf(node)],
   } as TElement;
 };
 

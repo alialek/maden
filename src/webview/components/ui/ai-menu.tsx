@@ -37,6 +37,7 @@ import { AIChatEditor } from './ai-chat-editor';
 import {
   createVirtualAnchor,
   getCurrentSelectionRect,
+  getEditorTextContentWidth,
   getMadenAiChatOption,
   setMadenAiChatOption,
   type LooseNodeEntry,
@@ -45,7 +46,10 @@ import {
 } from './ai-menu-anchor';
 import { buildStructuredSelectionActionPrompt } from './ai-menu-prompts';
 import { AIMenuItems } from './ai-menu-items';
-import { getSelectionContextInput } from './ai-selection-context';
+import {
+  getAiTargetBlocks,
+  getSelectionContextInput,
+} from './ai-selection-context';
 
 const AI_REWRITE_SHIMMER_CLASS = 'maden-ai-rewrite-shimmer';
 
@@ -255,6 +259,8 @@ export function AIMenu() {
 
   if (toolName === 'edit' && mode === 'chat' && isLoading) return null;
 
+  const popoverWidth = getEditorTextContentWidth() ?? anchorElement?.offsetWidth;
+
   return (
     <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverAnchor virtualRef={{ current: anchorElement! }} />
@@ -262,7 +268,7 @@ export function AIMenu() {
       <PopoverContent
         className="pointer-events-auto border-none bg-transparent p-0 shadow-none"
         style={{
-          width: anchorElement?.offsetWidth,
+          width: popoverWidth,
         }}
         onEscapeKeyDown={(e) => {
           e.preventDefault();
@@ -399,38 +405,7 @@ export function AILoadingBar() {
       return clearGlow;
     }
 
-    const blocks = editor
-      .getApi(BlockSelectionPlugin)
-      .blockSelection.getNodes({ selectionFallback: true, sort: true })
-      .map(([block]) => block);
-
-    const blockFromCurrentSelection = editor.selection
-      ? editor.api.block({ at: editor.selection, highest: true })
-      : null;
-    const chatSelection = editor.getOption(AIChatPlugin, 'chatSelection') as
-      | { anchor?: { path?: unknown }; focus?: { path?: unknown } }
-      | undefined;
-    const blockFromChatSelection = (() => {
-      const anchorPath = chatSelection?.anchor?.path ?? chatSelection?.focus?.path;
-      if (!anchorPath) return null;
-      try {
-        return editor.api.block({ at: anchorPath as any, highest: true });
-      } catch {
-        return null;
-      }
-    })();
-
-    const targets =
-      blocks.length > 0
-        ? blocks
-        : blockFromCurrentSelection
-          ? [blockFromCurrentSelection[0]]
-          : blockFromChatSelection
-            ? [blockFromChatSelection[0]]
-            : (() => {
-                const block = editor.api.block({ highest: true });
-                return block ? [block[0]] : [];
-              })();
+    const targets = getAiTargetBlocks(editor);
 
     const domTargets = targets
       .map((block) => {

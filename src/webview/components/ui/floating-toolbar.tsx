@@ -10,9 +10,11 @@ import { cn } from '@/lib/utils';
 import { Toolbar } from './toolbar';
 
 type FloatingPosition = {
-  centerX: number;
+  left: number;
   top: number;
 };
+
+const VIEWPORT_PADDING = 12;
 
 function getSelectionRect(editorElement: Element | null): DOMRect | null {
   const selection = window.getSelection();
@@ -48,6 +50,8 @@ function getSelectionRect(editorElement: Element | null): DOMRect | null {
 export function FloatingToolbar({
   children,
   className,
+  onMouseDownCapture,
+  onPointerDownCapture,
   ...props
 }: React.ComponentProps<typeof Toolbar>) {
   const editorId = useEditorId();
@@ -55,6 +59,29 @@ export function FloatingToolbar({
   const isFloatingLinkOpen = !!usePluginOption({ key: KEYS.link }, 'mode');
   const [position, setPosition] = React.useState<FloatingPosition | null>(null);
   const toolbarRef = React.useRef<HTMLDivElement | null>(null);
+  const isPointerInteractingRef = React.useRef(false);
+  const pointerInteractionTimeoutRef = React.useRef<number | null>(null);
+
+  const markPointerInteraction = React.useCallback(() => {
+    isPointerInteractingRef.current = true;
+
+    if (pointerInteractionTimeoutRef.current !== null) {
+      window.clearTimeout(pointerInteractionTimeoutRef.current);
+    }
+
+    pointerInteractionTimeoutRef.current = window.setTimeout(() => {
+      isPointerInteractingRef.current = false;
+      pointerInteractionTimeoutRef.current = null;
+    }, 300);
+  }, []);
+
+  React.useEffect(() => {
+    return () => {
+      if (pointerInteractionTimeoutRef.current !== null) {
+        window.clearTimeout(pointerInteractionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   React.useLayoutEffect(() => {
     const editorElement = document.querySelector('[data-slate-editor]');
@@ -62,9 +89,10 @@ export function FloatingToolbar({
       const toolbarElement = toolbarRef.current;
       const activeElement = document.activeElement;
       const openMenu = document.querySelector(
-        '[data-slot="dropdown-menu-content"]'
+        '[data-slot="dropdown-menu-content"], [data-slot="popover-content"], [data-radix-popper-content-wrapper]'
       );
 
+      if (isPointerInteractingRef.current) return true;
       if (!toolbarElement) return !!openMenu;
 
       if (activeElement && toolbarElement.contains(activeElement)) {
@@ -96,13 +124,21 @@ export function FloatingToolbar({
       }
 
       const viewportWidth = window.innerWidth;
-      const centerX = Math.min(
-        Math.max(rect.left + rect.width / 2, 12),
-        Math.max(12, viewportWidth - 12)
+      const toolbarWidth =
+        toolbarRef.current?.getBoundingClientRect().width ??
+        Math.min(560, viewportWidth * 0.8);
+      const preferredLeft = rect.left + rect.width / 2 - toolbarWidth / 2;
+      const maxLeft = Math.max(
+        VIEWPORT_PADDING,
+        viewportWidth - toolbarWidth - VIEWPORT_PADDING
       );
-      const top = Math.max(12, rect.top - 12);
+      const left = Math.min(
+        Math.max(preferredLeft, VIEWPORT_PADDING),
+        maxLeft
+      );
+      const top = Math.max(VIEWPORT_PADDING, rect.top - VIEWPORT_PADDING);
 
-      setPosition({ centerX, top });
+      setPosition({ left, top });
     };
 
     updatePosition();
@@ -127,14 +163,22 @@ export function FloatingToolbar({
       {...props}
       ref={toolbarRef}
       className={cn(
-        'scrollbar-hide fixed z-50 overflow-x-auto whitespace-nowrap rounded-md border bg-popover p-1 opacity-100 print:hidden',
+        'scrollbar-hide fixed z-[90] overflow-x-auto whitespace-nowrap rounded-md border bg-popover p-1 opacity-100 print:hidden',
         'max-w-[80vw]',
         className
       )}
+      onMouseDownCapture={(event) => {
+        markPointerInteraction();
+        onMouseDownCapture?.(event);
+      }}
+      onPointerDownCapture={(event) => {
+        markPointerInteraction();
+        onPointerDownCapture?.(event);
+      }}
       style={{
-        left: `${position.centerX}px`,
+        left: `${position.left}px`,
         top: `${position.top}px`,
-        transform: 'translate(-50%, calc(-100% - 12px))',
+        transform: 'translateY(calc(-100% - 12px))',
       }}
     >
       {children}

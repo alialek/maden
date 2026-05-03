@@ -4,18 +4,11 @@ import { deserializeMd } from '@platejs/markdown';
 import { normalizeNodeId, type Value } from 'platejs';
 import type { PlateEditor } from 'platejs/react';
 
+import { attachEditorDomListeners } from '@/hooks/editor-dom-listeners';
 import { normalizeImportedMarkdown } from '@/lib/markdown-import';
 
 export const useEditorPasteHandlers = (editor: PlateEditor) => {
   React.useEffect(() => {
-    const getEditorElement = (): HTMLElement | null => {
-      try {
-        return editor.api.toDOMNode(editor) as HTMLElement;
-      } catch {
-        return document.querySelector('[data-slate-editor]') as HTMLElement | null;
-      }
-    };
-
     const onPaste = (event: ClipboardEvent) => {
       const clipboard = event.clipboardData;
       const plainText = clipboard?.getData('text/plain') ?? '';
@@ -36,22 +29,8 @@ export const useEditorPasteHandlers = (editor: PlateEditor) => {
       }
     };
 
-    let currentEditorElement: HTMLElement | null = null;
-    const attach = (element: HTMLElement | null) => {
-      if (!element || currentEditorElement === element) return;
-      currentEditorElement?.removeEventListener('paste', onPaste, true);
-      currentEditorElement = element;
-      currentEditorElement.addEventListener('paste', onPaste, true);
-    };
-
-    attach(getEditorElement());
-    const attachInterval = window.setInterval(() => {
-      attach(getEditorElement());
-    }, 200);
-
-    return () => {
-      window.clearInterval(attachInterval);
-      currentEditorElement?.removeEventListener('paste', onPaste, true);
-    };
+    return attachEditorDomListeners(editor, [
+      { listener: onPaste as EventListener, options: true, type: 'paste' },
+    ]);
   }, [editor]);
 };

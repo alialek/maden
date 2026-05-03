@@ -408,7 +408,7 @@ function CodeDrawingToolbar({
 
   const positionClass = isMobile
     ? 'flex items-center gap-2'
-    : 'absolute right-2 z-10 flex items-center gap-2';
+    : 'absolute right-2 z-[90] flex items-center gap-2';
 
   return (
     <div

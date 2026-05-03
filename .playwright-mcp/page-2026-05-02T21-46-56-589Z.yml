@@ -1,0 +1,154 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - button "Editor appearance" [ref=e4] [cursor=pointer]:
+      - img
+    - generic [ref=e6]:
+      - toolbar [ref=e7]:
+        - generic [ref=e8]:
+          - generic [ref=e10]:
+            - button [disabled]:
+              - img
+            - button [disabled]:
+              - img
+          - button [ref=e112] [cursor=pointer]:
+            - img
+          - generic [ref=e12]:
+            - button [ref=e113] [cursor=pointer]:
+              - generic [ref=e114]:
+                - img
+              - generic [ref=e115]:
+                - img
+            - button "Text" [ref=e116] [cursor=pointer]:
+              - generic [ref=e117]: Text
+              - generic [ref=e118]:
+                - img
+            - generic [ref=e19]:
+              - button [ref=e20] [cursor=pointer]:
+                - img
+              - textbox [ref=e21]: "16"
+              - button [ref=e22] [cursor=pointer]:
+                - img
+          - generic [ref=e24]:
+            - button [ref=e119] [cursor=pointer]:
+              - img
+            - button [ref=e120] [cursor=pointer]:
+              - img
+            - button [ref=e121] [cursor=pointer]:
+              - img
+            - button [ref=e122] [cursor=pointer]:
+              - img
+            - button [ref=e123] [cursor=pointer]:
+              - img
+            - button [ref=e124] [cursor=pointer]:
+              - img
+            - button [ref=e125] [cursor=pointer]:
+              - img
+          - generic [ref=e33]:
+            - button [ref=e126] [cursor=pointer]:
+              - generic [ref=e127]:
+                - img
+              - generic [ref=e128]:
+                - img
+            - generic [ref=e37]:
+              - generic [ref=e38] [cursor=pointer]:
+                - img
+              - button [ref=e39] [cursor=pointer]:
+                - img [ref=e40]
+            - generic [ref=e42]:
+              - generic [ref=e43] [cursor=pointer]:
+                - img
+              - button [ref=e44] [cursor=pointer]:
+                - img [ref=e45]
+            - button [ref=e129] [cursor=pointer]:
+              - img
+            - button [ref=e130] [cursor=pointer]:
+              - img
+          - generic [ref=e50]:
+            - button [ref=e131] [cursor=pointer]:
+              - img
+            - button [ref=e132] [cursor=pointer]:
+              - generic [ref=e133]:
+                - img
+              - generic [ref=e134]:
+                - img
+            - button [ref=e135] [cursor=pointer]:
+              - generic [ref=e136]:
+                - img
+              - generic [ref=e137]:
+                - img
+          - generic [ref=e59]:
+            - generic [ref=e60]:
+              - generic [ref=e61] [cursor=pointer]:
+                - img
+              - button [ref=e62] [cursor=pointer]:
+                - img [ref=e63]
+            - generic [ref=e65]:
+              - generic [ref=e66] [cursor=pointer]:
+                - img
+              - button [ref=e67] [cursor=pointer]:
+                - img [ref=e68]
+            - generic [ref=e70]:
+              - generic [ref=e71] [cursor=pointer]:
+                - img
+              - button [ref=e72] [cursor=pointer]:
+                - img [ref=e73]
+            - generic [ref=e75]:
+              - generic [ref=e76] [cursor=pointer]:
+                - img
+              - button [ref=e77] [cursor=pointer]:
+                - img [ref=e78]
+          - generic [ref=e81]:
+            - button [ref=e138] [cursor=pointer]:
+              - generic [ref=e139]:
+                - img
+              - generic [ref=e140]:
+                - img
+            - button [ref=e141] [cursor=pointer]:
+              - img
+            - button [ref=e142] [cursor=pointer]:
+              - img
+          - button [ref=e143] [cursor=pointer]:
+            - img
+          - generic [ref=e91]:
+            - button [ref=e144] [cursor=pointer]:
+              - img
+            - button [ref=e145] [cursor=pointer]:
+              - img
+          - generic [ref=e95]:
+            - button [ref=e146] [cursor=pointer]:
+              - img
+            - button "Editing" [ref=e147] [cursor=pointer]:
+              - generic [ref=e148]:
+                - img
+                - generic [ref=e149]: Editing
+              - generic [ref=e150]:
+                - img
+      - textbox [active] [ref=e102]:
+        - generic [ref=e151]:
+          - button [ref=e155] [cursor=pointer]:
+            - img
+          - heading "untitled" [level=1] [ref=e157]:
+            - generic [ref=e159]: untitled
+        - generic [ref=e160]:
+          - button [ref=e164] [cursor=pointer]:
+            - img
+          - generic [ref=e168]: This is standalone browser mode for the Maden webview.
+        - generic [ref=e169]:
+          - button [ref=e173] [cursor=pointer]:
+            - img
+          - list [ref=e176]:
+            - listitem [ref=e177]:
+              - generic [ref=e179]: Turn into dropdown should open
+        - generic [ref=e180]:
+          - button [ref=e184] [cursor=pointer]:
+            - img
+          - list [ref=e187]:
+            - listitem [ref=e188]:
+              - generic [ref=e190]: Floating toolbar should remain visible while interacting
+        - generic [ref=e191]:
+          - button [ref=e195] [cursor=pointer]:
+            - img
+          - list [ref=e198]:
+            - listitem [ref=e199]:
+              - generic [ref=e201]: Drag handles should appear on block hover
+  - textbox [ref=e202]

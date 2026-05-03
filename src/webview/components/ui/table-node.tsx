@@ -88,6 +88,10 @@ import {
   BorderTopIcon,
 } from './table-icons';
 import {
+  getTableCellAttributes,
+  getTableCellStyle,
+} from './table-cell-props';
+import {
   Toolbar,
   ToolbarButton,
   ToolbarGroup,
@@ -563,18 +567,8 @@ export function TableCellElement({
         borders.left?.size && 'before:border-l before:border-l-border',
         borders.top?.size && 'before:border-t before:border-t-border'
       )}
-      style={
-        {
-          '--cellBackground': element.background,
-          maxWidth: width ? width : '100%',
-          minWidth: width ? width : 'max-content',
-        } as React.CSSProperties
-      }
-      attributes={{
-        ...props.attributes,
-        colSpan: api.table.getColSpan(element),
-        rowSpan: api.table.getRowSpan(element),
-      }}
+      style={getTableCellStyle(element, width)}
+      attributes={getTableCellAttributes(props.attributes, element, api)}
     >
       <div
         className="relative z-20 box-border h-full px-3 py-2 whitespace-normal break-words"

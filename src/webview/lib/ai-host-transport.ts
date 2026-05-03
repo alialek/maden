@@ -1,4 +1,5 @@
 import type { HostToWebviewMessage } from '../../shared/messages';
+import { readAiTextParts } from '../../shared/ai-message-normalization';
 
 import { postToHost } from '@/vscode';
 
@@ -15,35 +16,6 @@ const requestId = () =>
   `maden_ai_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const readTextParts = (value: unknown): string[] => {
-  if (typeof value === 'string') {
-    return [value];
-  }
-
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((part) => {
-      if (typeof part === 'string') {
-        return part;
-      }
-      if (!part || typeof part !== 'object') {
-        return '';
-      }
-      const maybe = part as { text?: unknown; content?: unknown };
-      if (typeof maybe.text === 'string') {
-        return maybe.text;
-      }
-      if (typeof maybe.content === 'string') {
-        return maybe.content;
-      }
-      return '';
-    })
-    .filter((part) => part.length > 0);
-};
 
 const parseRequestBody = (body: string): { selectedContext: string; userPrompt: string } => {
   try {
@@ -63,8 +35,8 @@ const parseRequestBody = (body: string): { selectedContext: string; userPrompt: 
       | undefined;
 
     const userPrompt = [
-      ...readTextParts(latestUser?.parts),
-      ...readTextParts(latestUser?.content),
+      ...readAiTextParts(latestUser?.parts),
+      ...readAiTextParts(latestUser?.content),
     ]
       .join('\n')
       .trim();

@@ -2,10 +2,8 @@
 
 import * as React from 'react';
 
-import type { DropdownMenuProps } from '@radix-ui/react-dropdown-menu';
 import type { TElement } from 'platejs';
 
-import { DropdownMenuItemIndicator } from '@radix-ui/react-dropdown-menu';
 import {
   CheckIcon,
   ChevronRightIcon,
@@ -28,17 +26,23 @@ import { KEYS } from 'platejs';
 import { useEditorRef, useSelectionFragmentProp } from 'platejs/react';
 
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Popover,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Popover as PopoverPrimitive } from 'radix-ui';
 import {
   getBlockType,
   setBlockType,
 } from '@/components/editor/transforms';
+import { cn } from '@/lib/utils';
+import { withPortalPlacementGuard } from '@/components/ui/portal-placement';
 
-import { ToolbarButton, ToolbarMenuGroup } from './toolbar';
+import { ToolbarButton } from './toolbar';
+
+const TurnIntoPopoverContent = withPortalPlacementGuard<
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
+>(PopoverPrimitive.Content);
 
 export const turnIntoItems = [
   {
@@ -139,7 +143,9 @@ export const turnIntoItems = [
   },
 ];
 
-export function TurnIntoToolbarButton(props: DropdownMenuProps) {
+export function TurnIntoToolbarButton(
+  props: Omit<React.ComponentProps<typeof Popover>, 'open' | 'onOpenChange'>
+) {
   const editor = useEditorRef();
   const [open, setOpen] = React.useState(false);
 
@@ -155,8 +161,8 @@ export function TurnIntoToolbarButton(props: DropdownMenuProps) {
   );
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen} modal={false} {...props}>
-      <DropdownMenuTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen} modal={false} {...props}>
+      <PopoverTrigger asChild>
         <ToolbarButton
           className="min-w-[125px]"
           pressed={open}
@@ -165,40 +171,51 @@ export function TurnIntoToolbarButton(props: DropdownMenuProps) {
         >
           {selectedItem.label}
         </ToolbarButton>
-      </DropdownMenuTrigger>
+      </PopoverTrigger>
 
-      <DropdownMenuContent
-        className="ignore-click-outside/toolbar min-w-0"
+      <PopoverPrimitive.Portal>
+      <TurnIntoPopoverContent
+        className="ignore-click-outside/toolbar z-[110]"
+        data-slot="popover-content"
         onCloseAutoFocus={(e) => {
           e.preventDefault();
           editor.tf.focus();
         }}
         align="start"
       >
-        <ToolbarMenuGroup
-          value={value}
-          onValueChange={(type) => {
-            setBlockType(editor, type);
-          }}
-          label="Turn into"
+        <div
+          className="rounded-xl border border-border/70 bg-popover p-1 text-popover-foreground shadow-xl shadow-black/20"
+          role="menu"
+          aria-label="Turn into"
         >
+          <div className="select-none px-1.5 py-1 font-semibold text-muted-foreground text-xs">
+            Turn into
+          </div>
           {turnIntoItems.map(({ icon, label, value: itemValue }) => (
-            <DropdownMenuRadioItem
+            <button
               key={itemValue}
-              className="min-w-[180px] pl-2 *:first:[span]:hidden"
-              value={itemValue}
+              type="button"
+              role="menuitemradio"
+              data-slot="popover-menu-item"
+              aria-checked={itemValue === value}
+              className={cn(
+                "relative flex min-w-[180px] w-full cursor-pointer items-center gap-1.5 rounded-md py-1 pr-8 pl-2 text-left text-sm outline-none select-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+              )}
+              onClick={() => {
+                setBlockType(editor, itemValue);
+                setOpen(false);
+              }}
             >
               <span className="pointer-events-none absolute right-2 flex size-3.5 items-center justify-center">
-                <DropdownMenuItemIndicator>
-                  <CheckIcon />
-                </DropdownMenuItemIndicator>
+                {itemValue === value && <CheckIcon />}
               </span>
               {icon}
               {label}
-            </DropdownMenuRadioItem>
+            </button>
           ))}
-        </ToolbarMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </div>
+      </TurnIntoPopoverContent>
+      </PopoverPrimitive.Portal>
+    </Popover>
   );
 }

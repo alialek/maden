@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  compactMarkdownTableWhitespace,
   enforceTitleHeading,
   reconcileMarkdownPreservingUnchangedFormatting,
 } from '../../src/extension/markdownUtils';
@@ -156,6 +157,48 @@ describe('reconcileMarkdownPreservingUnchangedFormatting', () => {
     expect(reconciled).not.toContain('***');
   });
 
+  it('compacts serializer-padded edited table rows', () => {
+    const previous = [
+      '| Поле | Описание |',
+      '| --- | --- |',
+      '| id | Старое описание |',
+      '',
+    ].join('\n');
+
+    const next = [
+      '| Поле              | Описание                       |',
+      '| ----------------- | ------------------------------ |',
+      '| id                | Новое описание                 |',
+      '',
+    ].join('\n');
+
+    const reconciled = reconcileMarkdownPreservingUnchangedFormatting(previous, next);
+
+    expect(reconciled).toContain('| Поле | Описание |');
+    expect(reconciled).toContain('| --- | --- |');
+    expect(reconciled).toContain('| id | Новое описание |');
+    expect(reconciled).not.toContain('Новое описание                 |');
+  });
+
+  it('keeps newly inserted empty paragraphs from Plate serialization', () => {
+    const emptyParagraphMarker = '\u200B';
+    const previous = ['A', '', 'B', ''].join('\n');
+    const next = [
+      'A',
+      '',
+      emptyParagraphMarker,
+      '',
+      emptyParagraphMarker,
+      '',
+      'B',
+      '',
+    ].join('\n');
+
+    const reconciled = reconcileMarkdownPreservingUnchangedFormatting(previous, next);
+
+    expect(reconciled).toBe(next);
+  });
+
   it('does not drop closing code fences when inserting a diagram before existing content', () => {
     const previous = ['# note', '', 'Content below diagram', ''].join('\n');
     const next = [
@@ -177,5 +220,35 @@ describe('reconcileMarkdownPreservingUnchangedFormatting', () => {
     expect(reconciled).toContain('```mermaid\nsequenceDiagram');
     expect(reconciled).toContain('Client->>Server: Request data\n```');
     expect(reconciled).toContain('```\n\nContent below diagram');
+  });
+});
+
+describe('compactMarkdownTableWhitespace', () => {
+  it('does not treat Mermaid inheritance arrows inside fenced code as table rows', () => {
+    const markdown = [
+      '```mermaid',
+      'classDiagram',
+      '    Animal <|-- Dog',
+      '```',
+      '',
+      '| A     | B       |',
+      '| ----- | ------- |',
+      '| value | another |',
+      '',
+    ].join('\n');
+
+    expect(compactMarkdownTableWhitespace(markdown)).toBe(
+      [
+        '```mermaid',
+        'classDiagram',
+        '    Animal <|-- Dog',
+        '```',
+        '',
+        '| A | B |',
+        '| --- | --- |',
+        '| value | another |',
+        '',
+      ].join('\n')
+    );
   });
 });

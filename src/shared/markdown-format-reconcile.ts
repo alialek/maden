@@ -1,5 +1,99 @@
 const normalizeLineEndings = (value: string): string => value.replace(/\r\n/g, '\n');
 
+const ZERO_WIDTH_PATTERN = /[\u200B-\u200D\uFEFF]/g;
+const ZERO_WIDTH_TEST_PATTERN = /[\u200B-\u200D\uFEFF]/u;
+const EMPTY_PARAGRAPH_SEMANTIC_LINE = 'maden-empty-paragraph';
+
+const isFenceLine = (line: string): boolean =>
+  /^ {0,3}(`{3,}|~{3,})/u.test(line.trimStart());
+
+const splitMarkdownTableCells = (line: string): string[] | null => {
+  const trimmed = line.trim();
+
+  if (!trimmed.startsWith('|') || !trimmed.endsWith('|')) {
+    return null;
+  }
+
+  const content = trimmed.slice(1, -1);
+  const cells: string[] = [];
+  let current = '';
+
+  for (let index = 0; index < content.length; index += 1) {
+    const character = content[index] ?? '';
+    let backslashCount = 0;
+
+    for (
+      let previousIndex = index - 1;
+      previousIndex >= 0 && content[previousIndex] === '\\';
+      previousIndex -= 1
+    ) {
+      backslashCount += 1;
+    }
+
+    if (character === '|' && backslashCount % 2 === 0) {
+      cells.push(current);
+      current = '';
+      continue;
+    }
+
+    current += character;
+  }
+
+  cells.push(current);
+
+  return cells;
+};
+
+const isTableDelimiterCell = (cell: string): boolean =>
+  /^:?-{1,}:?$/u.test(cell.trim().replace(/\s+/g, ''));
+
+const normalizeTableDelimiterCell = (cell: string): string => {
+  const normalized = cell.trim().replace(/\s+/g, '');
+  const left = normalized.startsWith(':');
+  const right = normalized.endsWith(':');
+
+  if (left && right) return ':---:';
+  if (left) return ':---';
+  if (right) return '---:';
+  return '---';
+};
+
+const compactMarkdownTableLine = (line: string): string => {
+  const cells = splitMarkdownTableCells(line);
+
+  if (!cells || cells.length < 2) {
+    return line;
+  }
+
+  const trimmedCells = cells.map((cell) => cell.trim().replace(ZERO_WIDTH_PATTERN, ''));
+
+  if (trimmedCells.every(isTableDelimiterCell)) {
+    return `| ${trimmedCells.map(normalizeTableDelimiterCell).join(' | ')} |`;
+  }
+
+  return `| ${trimmedCells.join(' | ')} |`;
+};
+
+export const compactMarkdownTableWhitespace = (markdown: string): string => {
+  let inFence = false;
+
+  return markdown
+    .split('\n')
+    .map((line) => {
+      if (isFenceLine(line)) {
+        inFence = !inFence;
+        return line;
+      }
+
+      if (inFence) {
+        return line;
+      }
+
+      return compactMarkdownTableLine(line);
+    })
+    .join('\n');
+};
+
 const normalizeTableLine = (line: string): string => {
   const trimmed = line.trim();
 
@@ -23,8 +117,16 @@ const normalizeTableLine = (line: string): string => {
   return cells.join('|');
 };
 
+const isExplicitEmptyParagraphLine = (line: string): boolean =>
+  ZERO_WIDTH_TEST_PATTERN.test(line) &&
+  line.replace(ZERO_WIDTH_PATTERN, '').trim().length === 0;
+
 const semanticLine = (line: string): string =>
   (() => {
+    if (isExplicitEmptyParagraphLine(line)) {
+      return EMPTY_PARAGRAPH_SEMANTIC_LINE;
+    }
+
     const normalizedTableLine = normalizeTableLine(line);
     const codeFenceMatch = normalizedTableLine
       .trim()
@@ -37,7 +139,7 @@ const semanticLine = (line: string): string =>
     return normalizedTableLine;
   })()
     .normalize('NFKC')
-    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(ZERO_WIDTH_PATTERN, '')
     .replace(/&nbsp;|&#160;|&#xA0;/gi, ' ')
     .replace(/<br\s*\/?>/gi, '<br>')
     .replace(/\\([\\`*_[\]{}()#+\-.!|>])/g, '$1')
@@ -80,7 +182,7 @@ export function reconcileMarkdownPreservingUnchangedFormatting(
   nextMarkdown: string
 ): string {
   const previousNormalized = normalizeLineEndings(previousMarkdown);
-  const nextNormalized = normalizeLineEndings(nextMarkdown);
+  const nextNormalized = compactMarkdownTableWhitespace(normalizeLineEndings(nextMarkdown));
 
   if (previousNormalized === nextNormalized) {
     return previousNormalized;

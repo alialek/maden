@@ -22,6 +22,7 @@ import {
   logMarkdownSectionParse,
   summarizeParseErrorForHost,
 } from '@/lib/markdown-parse-debug';
+import { coerceSlateTextLeaf } from '@/lib/slate-node-normalize';
 
 export const EMPTY_VALUE: Value = [
   {
@@ -73,24 +74,6 @@ type SlateElement = { type: string; children: Array<SlateLeaf | SlateElement> } 
   unknown
 >;
 type SlateNode = SlateLeaf | SlateElement;
-
-const toTextLeaf = (value: unknown): { text: string } => {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    const candidate = value as { text?: unknown };
-    if (typeof candidate.text === 'string') {
-      return {
-        ...(candidate as Record<string, unknown>),
-        text: candidate.text,
-      };
-    }
-  }
-
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    return { text: String(value) };
-  }
-
-  return { text: '' };
-};
 
 const emptySanitizeStats = (): SanitizeStats => ({
   repairedExamples: [],
@@ -181,7 +164,7 @@ const sanitizeSlateNode = (
       stats.repairedNonObject += 1;
       pushRepairExample(stats, `${path}:leaf-from-non-object`);
     }
-    return toTextLeaf(node);
+    return coerceSlateTextLeaf(node);
   }
 
   if (stats) {
@@ -190,7 +173,7 @@ const sanitizeSlateNode = (
     pushRepairExample(stats, `${path}:paragraph-from-non-object`);
   }
   return {
-    children: [toTextLeaf(node)],
+    children: [coerceSlateTextLeaf(node)],
     type: 'p',
   };
 };

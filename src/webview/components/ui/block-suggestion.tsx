@@ -24,20 +24,20 @@ import {
 } from 'platejs';
 import { useEditorPlugin, usePluginOption } from 'platejs/react';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import {
-  type TDiscussion,
-  discussionPlugin,
-} from '@/components/editor/plugins/discussion-kit';
-import { suggestionPlugin } from '@/components/editor/plugins/suggestion-kit';
+import { discussionPlugin } from '@/components/editor/plugins/discussion-plugin';
+import type {
+  TComment,
+  TDiscussion,
+} from '@/components/editor/plugins/discussion-types';
+import { suggestionPlugin } from '@/components/editor/plugins/suggestion-plugin';
 
 import {
-  type TComment,
   Comment,
   CommentCreateForm,
   formatCommentDate,
 } from './comment';
+import { CommentAuthorHeader } from './comment-author-header';
 
 export interface ResolvedSuggestion extends TResolvedSuggestion {
   comments: TComment[];
@@ -119,19 +119,11 @@ export function BlockSuggestionCard({
     >
       <div className="flex flex-col p-4">
         <div className="relative flex items-center">
-          {/* Replace to your own backend or refer to potion */}
-          <Avatar className="size-5">
-            <AvatarImage alt={userInfo?.name} src={userInfo?.avatarUrl} />
-            <AvatarFallback>{userInfo?.name?.[0]}</AvatarFallback>
-          </Avatar>
-          <h4 className="mx-2 font-semibold text-sm leading-none">
-            {userInfo?.name}
-          </h4>
-          <div className="text-muted-foreground/80 text-xs leading-none">
-            <span className="mr-1">
-              {formatCommentDate(new Date(suggestion.createdAt))}
-            </span>
-          </div>
+          <CommentAuthorHeader
+            avatarUrl={userInfo?.avatarUrl}
+            name={userInfo?.name}
+            timestamp={formatCommentDate(new Date(suggestion.createdAt))}
+          />
         </div>
 
         <div className="relative mt-1 mb-4 pl-[32px]">

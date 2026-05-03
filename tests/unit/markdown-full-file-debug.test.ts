@@ -9,6 +9,7 @@ import {
   canonicalizeMarkdown,
   roundTripMarkdownWithPlate,
 } from '../../src/webview/lib/markdown-plate-conversion';
+import { findTextLeaf } from './test-node-helpers';
 
 const DEFAULT_DEBUG_FILE = '/Users/alek/Downloads/Шаблоны требований (1).md';
 const debugFile = process.env.MADEN_MARKDOWN_DEBUG_FILE ?? DEFAULT_DEBUG_FILE;
@@ -16,31 +17,6 @@ const fileExists = existsSync(debugFile);
 const itIfDebugFileExists = fileExists ? it : it.skip;
 const itIfStrictRoundTrip =
   fileExists && process.env.MADEN_MARKDOWN_STRICT_ROUNDTRIP === '1' ? it : it.skip;
-
-const findTextLeaf = (
-  nodes: unknown[],
-  text: string
-): Record<string, unknown> | null => {
-  for (const node of nodes) {
-    if (!node || typeof node !== 'object') {
-      continue;
-    }
-
-    const candidate = node as { children?: unknown[]; text?: unknown };
-    if (candidate.text === text) {
-      return candidate as Record<string, unknown>;
-    }
-
-    if (Array.isArray(candidate.children)) {
-      const nested = findTextLeaf(candidate.children, text);
-      if (nested) {
-        return nested;
-      }
-    }
-  }
-
-  return null;
-};
 
 describe('full-file markdown debug conversion', () => {
   itIfDebugFileExists('parses the full debug markdown file through production conversion', () => {

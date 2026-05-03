@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { readFile, unlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -85,6 +85,61 @@ const fetchGigaChatNativeAccessToken = async (
   throw new Error('GigaChat native requires either API token or client credentials.');
 };
 
+const waitForCliProcess = async ({
+  abortMessage,
+  abortSignal,
+  child,
+  formatStartError = (error) => error,
+  formatStatusError,
+}: {
+  abortMessage: string;
+  abortSignal: AbortSignal;
+  child: ChildProcess;
+  formatStartError?: (error: Error) => Error;
+  formatStatusError: (code: number | null, stderr: string) => Error;
+}): Promise<{ stdout: string; stderr: string }> => {
+  let stdout = '';
+  let stderr = '';
+
+  child.stdout?.on('data', (chunk) => {
+    stdout += chunk.toString();
+  });
+  child.stderr?.on('data', (chunk) => {
+    stderr += chunk.toString();
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      try {
+        child.kill('SIGTERM');
+      } catch {
+        // no-op
+      }
+    };
+    abortSignal.addEventListener('abort', onAbort, { once: true });
+
+    child.on('error', (error) => {
+      abortSignal.removeEventListener('abort', onAbort);
+      reject(formatStartError(error));
+    });
+
+    child.on('close', (code) => {
+      abortSignal.removeEventListener('abort', onAbort);
+      if (abortSignal.aborted) {
+        reject(new Error(abortMessage));
+        return;
+      }
+      if (code !== 0) {
+        reject(formatStatusError(code, stderr));
+        return;
+      }
+      resolve();
+    });
+  });
+
+  return { stderr, stdout };
+};
+
 const runCodexCli = async (
   requestId: string,
   config: ResolvedRequestConfig,
@@ -119,45 +174,18 @@ const runCodexCli = async (
   });
   cliProcessByRequest.set(requestId, child);
 
-  let stderr = '';
-  child.stderr?.on('data', (chunk) => {
-    stderr += chunk.toString();
-  });
-
-  await new Promise<void>((resolve, reject) => {
-    const onAbort = () => {
-      try {
-        child.kill('SIGTERM');
-      } catch {
-        // no-op
-      }
-    };
-    abortSignal.addEventListener('abort', onAbort, { once: true });
-
-    child.on('error', (error) => {
-      abortSignal.removeEventListener('abort', onAbort);
-      reject(error);
-    });
-
-    child.on('close', (code) => {
-      abortSignal.removeEventListener('abort', onAbort);
-      if (abortSignal.aborted) {
-        reject(new Error('Codex CLI request cancelled.'));
-        return;
-      }
-      if (code !== 0) {
+  await waitForCliProcess({
+    abortMessage: 'Codex CLI request cancelled.',
+    abortSignal,
+    child,
+    formatStatusError: (code, stderr) => {
         const details = stderr.trim();
-        reject(
-          new Error(
-            details
-              ? `codex exec failed (${code}): ${details}`
-              : `codex exec failed with code ${code}`
-          )
+      return new Error(
+        details
+          ? `codex exec failed (${code}): ${details}`
+          : `codex exec failed with code ${code}`
         );
-        return;
-      }
-      resolve();
-    });
+    },
   });
 
   try {
@@ -195,54 +223,25 @@ const runQwenLikeCli = async (
   });
   cliProcessByRequest.set(requestId, child);
 
-  let stdout = '';
-  let stderr = '';
-  child.stdout?.on('data', (chunk) => {
-    stdout += chunk.toString();
-  });
-  child.stderr?.on('data', (chunk) => {
-    stderr += chunk.toString();
-  });
-
-  await new Promise<void>((resolve, reject) => {
-    const onAbort = () => {
-      try {
-        child.kill('SIGTERM');
-      } catch {
-        // no-op
-      }
-    };
-    abortSignal.addEventListener('abort', onAbort, { once: true });
-
-    child.on('error', (error) => {
-      abortSignal.removeEventListener('abort', onAbort);
+  const { stdout } = await waitForCliProcess({
+    abortMessage: `${providerLabel} request cancelled.`,
+    abortSignal,
+    child,
+    formatStartError: (error) => {
       const maybeError = error as NodeJS.ErrnoException;
       if (maybeError.code === 'ENOENT') {
-        reject(new Error(`${providerLabel} is not installed or not found in PATH.`));
-        return;
+        return new Error(`${providerLabel} is not installed or not found in PATH.`);
       }
-      reject(new Error(`${providerLabel} failed to start: ${error.message}`));
-    });
-
-    child.on('close', (code) => {
-      abortSignal.removeEventListener('abort', onAbort);
-      if (abortSignal.aborted) {
-        reject(new Error(`${providerLabel} request cancelled.`));
-        return;
-      }
-      if (code !== 0) {
+      return new Error(`${providerLabel} failed to start: ${error.message}`);
+    },
+    formatStatusError: (code, stderr) => {
         const details = stderr.trim();
-        reject(
-          new Error(
-            details
-              ? `${binary} -p failed (${code}): ${details}`
-              : `${binary} -p failed with code ${code}`
-          )
+      return new Error(
+        details
+          ? `${binary} -p failed (${code}): ${details}`
+          : `${binary} -p failed with code ${code}`
         );
-        return;
-      }
-      resolve();
-    });
+    },
   });
 
   try {
@@ -266,6 +265,36 @@ const yieldTextChunks = async function* (
     }
     yield chunk;
   }
+};
+
+const streamOpenAiChatCompletions = async function* (
+  config: ResolvedRequestConfig,
+  abortSignal: AbortSignal,
+  headers: Record<string, string>,
+  errorLabel: string
+): AsyncGenerator<string> {
+  const endpoint = joinUrl(config.baseUrl, 'chat/completions');
+  const response = await fetch(endpoint, {
+    body: JSON.stringify({
+      max_tokens: config.maxTokens,
+      messages: config.messages.map((message) => ({
+        content: message.content,
+        role: message.role,
+      })),
+      model: config.model,
+      stream: true,
+      temperature: config.temperature,
+    }),
+    headers,
+    method: 'POST',
+    signal: abortSignal,
+  });
+
+  if (!response.ok) {
+    throw await toDisplayError(errorLabel, response);
+  }
+
+  yield* streamOpenAiLike(response, abortSignal);
 };
 
 export async function* streamProvider({
@@ -417,31 +446,15 @@ export async function* streamProvider({
 
   if (config.provider === 'gigachat-native') {
     const token = await fetchGigaChatNativeAccessToken(config, abortSignal);
-    const endpoint = joinUrl(config.baseUrl, 'chat/completions');
-    const response = await fetch(endpoint, {
-      body: JSON.stringify({
-        max_tokens: config.maxTokens,
-        messages: config.messages.map((message) => ({
-          content: message.content,
-          role: message.role,
-        })),
-        model: config.model,
-        stream: true,
-        temperature: config.temperature,
-      }),
-      headers: {
+    yield* streamOpenAiChatCompletions(
+      config,
+      abortSignal,
+      {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      method: 'POST',
-      signal: abortSignal,
-    });
-
-    if (!response.ok) {
-      throw await toDisplayError('GigaChat native', response);
-    }
-
-    yield* streamOpenAiLike(response, abortSignal);
+      'GigaChat native'
+    );
     return;
   }
 
@@ -459,30 +472,9 @@ export async function* streamProvider({
     headers['X-Title'] = 'Maden';
   }
 
-  const endpoint = joinUrl(config.baseUrl, 'chat/completions');
-  const response = await fetch(endpoint, {
-    body: JSON.stringify({
-      max_tokens: config.maxTokens,
-      messages: config.messages.map((message) => ({
-        content: message.content,
-        role: message.role,
-      })),
-      model: config.model,
-      stream: true,
-      temperature: config.temperature,
-    }),
-    headers,
-    method: 'POST',
-    signal: abortSignal,
-  });
-
-  if (!response.ok) {
-    const label =
-      config.provider === 'gigachat-openai-compatible'
-        ? 'GigaChat OpenAI-compatible'
-        : config.provider.charAt(0).toUpperCase() + config.provider.slice(1);
-    throw await toDisplayError(label, response);
-  }
-
-  yield* streamOpenAiLike(response, abortSignal);
+  const label =
+    config.provider === 'gigachat-openai-compatible'
+      ? 'GigaChat OpenAI-compatible'
+      : config.provider.charAt(0).toUpperCase() + config.provider.slice(1);
+  yield* streamOpenAiChatCompletions(config, abortSignal, headers, label);
 }
