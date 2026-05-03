@@ -71,7 +71,9 @@ const compactMarkdownTableLine = (line: string): string => {
     return `| ${trimmedCells.map(normalizeTableDelimiterCell).join(' | ')} |`;
   }
 
-  return `| ${trimmedCells.join(' | ')} |`;
+  return `|${trimmedCells
+    .map((cell) => (cell.length > 0 ? ` ${cell} ` : ' '))
+    .join('|')}|`;
 };
 
 export const compactMarkdownTableWhitespace = (markdown: string): string => {
@@ -136,26 +138,130 @@ const semanticLine = (line: string): string =>
       return `code-fence:${codeFenceMatch[1][0]}:${codeFenceMatch[2].trim().toLowerCase()}`;
     }
 
+    if (/^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/u.test(normalizedTableLine)) {
+      return 'thematic-break';
+    }
+
     return normalizedTableLine;
   })()
     .normalize('NFKC')
     .replace(ZERO_WIDTH_PATTERN, '')
     .replace(/&nbsp;|&#160;|&#xA0;/gi, ' ')
     .replace(/<br\s*\/?>/gi, '<br>')
-    .replace(/\\([\\`*_[\]{}()#+\-.!|>])/g, '$1')
+    .replace(/\\([\\`*_[\]{}()#+\-.!|<>])/g, '$1')
     .replace(/!\[(.*?)\]\((.*?)\)/g, '$1')
     .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
     .replace(/^(\s*)(?:\\)?[-*+]\s+/u, '$1')
     .replace(/^(\s*)\d+\.\s+/u, '$1')
     .replace(/^\s{0,3}(#{1,6})\s+/u, '')
     .replace(/^\s{0,3}>\s?/u, '')
-    .replace(/^(\s*)([-*_]\s*){3,}\s*$/u, '')
     .replace(/[`*_~]/g, '')
     .replace(/[\[\]]/g, '')
     .replace(/\\$/u, '')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
+
+const normalizeFormattingNoise = (line: string): string =>
+  line
+    .normalize('NFKC')
+    .replace(ZERO_WIDTH_PATTERN, '')
+    .replace(/&nbsp;|&#160;|&#xA0;/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '<br>')
+    .replace(/\\([\\`*_[\]{}()#+\-.!|<>])/g, '$1')
+    .replace(/(^|[^\w])__([^_\n]+?)__($|[^\w])/gu, '$1**$2**$3')
+    .replace(/(^|[^\w])_([^_\n]+?)_($|[^\w])/gu, '$1*$2*$3')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const isMarkdownFormattingNoiseVariant = (
+  previousLine: string,
+  nextLine: string
+): boolean =>
+  previousLine !== nextLine &&
+  semanticLine(previousLine) === semanticLine(nextLine) &&
+  normalizeFormattingNoise(previousLine) === normalizeFormattingNoise(nextLine);
+
+const buildFenceMask = (lines: string[]): boolean[] => {
+  let inFence = false;
+
+  return lines.map((line) => {
+    const lineIsInFence = inFence;
+
+    if (isFenceLine(line)) {
+      inFence = !inFence;
+    }
+
+    return lineIsInFence;
+  });
+};
+
+const preserveUniquePreviousFormatting = (
+  previousLines: string[],
+  mergedLines: string[]
+): string[] => {
+  const previousFenceMask = buildFenceMask(previousLines);
+  const mergedFenceMask = buildFenceMask(mergedLines);
+  const previousBySemantic = new Map<
+    string,
+    { count: number; line: string }
+  >();
+
+  previousLines.forEach((line, index) => {
+    if (previousFenceMask[index]) {
+      return;
+    }
+
+    const semantic = semanticLine(line);
+
+    if (!semantic || semantic === EMPTY_PARAGRAPH_SEMANTIC_LINE) {
+      return;
+    }
+
+    const entry = previousBySemantic.get(semantic);
+    if (entry) {
+      entry.count += 1;
+      return;
+    }
+
+    previousBySemantic.set(semantic, { count: 1, line });
+  });
+
+  return mergedLines.map((line, index) => {
+    if (mergedFenceMask[index]) {
+      return line;
+    }
+
+    const semantic = semanticLine(line);
+    const previousEntry = previousBySemantic.get(semantic);
+
+    if (
+      previousEntry?.count === 1 &&
+      isMarkdownFormattingNoiseVariant(previousEntry.line, line)
+    ) {
+      return previousEntry.line;
+    }
+
+    return line;
+  });
+};
+
+const buildSemanticLines = (lines: string[]): string[] => {
+  let inFence = false;
+
+  return lines.map((line) => {
+    if (isFenceLine(line)) {
+      inFence = !inFence;
+      return semanticLine(line);
+    }
+
+    if (inFence) {
+      return `code:${line.normalize('NFKC').replace(ZERO_WIDTH_PATTERN, '')}`;
+    }
+
+    return semanticLine(line);
+  });
+};
 
 const buildLcsTable = (left: string[], right: string[]): number[][] => {
   const rows = left.length + 1;
@@ -190,8 +296,8 @@ export function reconcileMarkdownPreservingUnchangedFormatting(
 
   const previousLines = previousNormalized.split('\n');
   const nextLines = nextNormalized.split('\n');
-  const previousSemantic = previousLines.map(semanticLine);
-  const nextSemantic = nextLines.map(semanticLine);
+  const previousSemantic = buildSemanticLines(previousLines);
+  const nextSemantic = buildSemanticLines(nextLines);
 
   // If only markdown punctuation/formatting changed, preserve the original text verbatim.
   if (
@@ -244,18 +350,33 @@ export function reconcileMarkdownPreservingUnchangedFormatting(
 
   const mergedLines: string[] = [];
 
-  for (const operation of operations) {
+  for (let operationIndex = 0; operationIndex < operations.length; operationIndex += 1) {
+    const operation = operations[operationIndex];
+
     if (operation.type === 'equal') {
       mergedLines.push(previousLines[operation.previousIndex] ?? '');
       continue;
     }
 
     if (operation.type === 'insert') {
+      const previousOperation = operations[operationIndex - 1];
+      const nextOperation = operations[operationIndex + 1];
+      const insertedSemanticLine = nextSemantic[operation.nextIndex] ?? '';
+      const isSerializerBlankBetweenUnchangedAdjacentLines =
+        insertedSemanticLine.length === 0 &&
+        previousOperation?.type === 'equal' &&
+        nextOperation?.type === 'equal' &&
+        nextOperation.previousIndex === previousOperation.previousIndex + 1;
+
+      if (isSerializerBlankBetweenUnchangedAdjacentLines) {
+        continue;
+      }
+
       mergedLines.push(nextLines[operation.nextIndex] ?? '');
     }
   }
 
-  const merged = mergedLines.join('\n');
+  const merged = preserveUniquePreviousFormatting(previousLines, mergedLines).join('\n');
   if (nextNormalized.endsWith('\n') && !merged.endsWith('\n')) {
     return `${merged}\n`;
   }

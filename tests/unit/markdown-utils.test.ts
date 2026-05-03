@@ -131,6 +131,153 @@ describe('reconcileMarkdownPreservingUnchangedFormatting', () => {
     expect(reconcileMarkdownPreservingUnchangedFormatting(previous, next)).toBe(previous);
   });
 
+  it('preserves unchanged angle-bracket placeholders when serializer escapes them', () => {
+    const previous = [
+      'Epic Link: <Ссылка на Epic в JIRA>',
+      '',
+      '| **Product Owner** | <@ ФИО PO> | |',
+      '',
+    ].join('\n');
+    const next = [
+      'Epic Link: \\<Ссылка на Epic в JIRA>',
+      '',
+      '| **Product Owner** | \\<@ ФИО PO> | ​ |',
+      '',
+      '```mermaid',
+      '```',
+      '',
+    ].join('\n');
+
+    const reconciled = reconcileMarkdownPreservingUnchangedFormatting(previous, next);
+
+    expect(reconciled).toContain('Epic Link: <Ссылка на Epic в JIRA>');
+    expect(reconciled).toContain('| **Product Owner** | <@ ФИО PO> | |');
+    expect(reconciled).not.toContain('\\<Ссылка');
+  });
+
+  it('preserves unchanged emphasis, nbsp, empty table cell, and code fence adjacency', () => {
+    const previous = [
+      '*Примеры:*',
+      '',
+      '<br> &nbsp;&nbsp;1.1. *Кнопка отображается*',
+      '',
+      '| **Product Owner** | <@ ФИО PO> | |',
+      '',
+      'Пример структуры:',
+      '```',
+      'Проблема: <описание текущей проблемы>',
+      '```',
+      '',
+      'Tail',
+      '',
+    ].join('\n');
+
+    const next = [
+      '```mermaid',
+      'classDiagram',
+      '    Animal <|-- Dog',
+      '```',
+      '',
+      '_Примеры:_',
+      '',
+      '<br/>   1.1. _Кнопка отображается_',
+      '',
+      '| **Product Owner** | <@ ФИО PO> | ​ |',
+      '',
+      'Пример структуры:',
+      '',
+      '```',
+      'Проблема: <описание текущей проблемы>',
+      '```',
+      '',
+      'Tail',
+      '',
+    ].join('\n');
+
+    const reconciled = reconcileMarkdownPreservingUnchangedFormatting(previous, next);
+
+    expect(reconciled).toContain('```mermaid\nclassDiagram');
+    expect(reconciled).toContain('*Примеры:*');
+    expect(reconciled).not.toContain('_Примеры:_');
+    expect(reconciled).toContain('<br> &nbsp;&nbsp;1.1. *Кнопка отображается*');
+    expect(reconciled).not.toContain('<br/>   1.1. _Кнопка отображается_');
+    expect(reconciled).toContain('| **Product Owner** | <@ ФИО PO> | |');
+    expect(reconciled).not.toContain('| **Product Owner** | <@ ФИО PO> |  |');
+    expect(reconciled).toContain(
+      'Пример структуры:\n```\nПроблема: <описание текущей проблемы>'
+    );
+    expect(reconciled).not.toContain('Пример структуры:\n\n```');
+  });
+
+  it('preserves star italic markers when inserting an empty Mermaid block', () => {
+    const previous = [
+      'Пример:',
+      '*курсив*',
+      '',
+      '## Эпик',
+      '',
+    ].join('\n');
+
+    const next = [
+      'Пример:',
+      '_курсив_',
+      '',
+      'Привет',
+      '',
+      '```mermaid',
+      '```',
+      '',
+      '## Эпик',
+      '',
+    ].join('\n');
+
+    const reconciled = reconcileMarkdownPreservingUnchangedFormatting(previous, next);
+
+    expect(reconciled).toContain('*курсив*');
+    expect(reconciled).not.toContain('_курсив_');
+    expect(reconciled).toContain('Привет\n\n```mermaid\n```');
+    expect(reconciled).toContain('```\n\n## Эпик');
+  });
+
+  it('preserves thematic break marker when inserting content after it', () => {
+    const previous = ['---', '', '## Эпик', ''].join('\n');
+    const next = [
+      '***',
+      '',
+      'Пример:',
+      'Привет',
+      '',
+      '```mermaid',
+      '```',
+      '',
+      '## Эпик',
+      '',
+    ].join('\n');
+
+    const reconciled = reconcileMarkdownPreservingUnchangedFormatting(previous, next);
+
+    expect(reconciled).toContain('---\n\nПример:');
+    expect(reconciled).not.toContain('***');
+  });
+
+  it('does not rewrite inserted Mermaid code lines from previous markdown text', () => {
+    const previous = ['*курсив*', '', '## Эпик', ''].join('\n');
+    const next = [
+      '*курсив*',
+      '',
+      '```mermaid',
+      '_курсив_',
+      '```',
+      '',
+      '## Эпик',
+      '',
+    ].join('\n');
+
+    const reconciled = reconcileMarkdownPreservingUnchangedFormatting(previous, next);
+
+    expect(reconciled).toContain('```mermaid\n_курсив_\n```');
+  });
+
   it('keeps actual content edits while preserving unchanged surrounding formatting', () => {
     const previous = [
       '---',
@@ -250,5 +397,11 @@ describe('compactMarkdownTableWhitespace', () => {
         '',
       ].join('\n')
     );
+  });
+
+  it('compacts empty trailing table cells to a single space cell', () => {
+    expect(
+      compactMarkdownTableWhitespace('| **Product Owner** | <@ ФИО PO> | ​ |')
+    ).toBe('| **Product Owner** | <@ ФИО PO> | |');
   });
 });

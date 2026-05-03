@@ -19,6 +19,15 @@
 - Use `debug:markdown` for Markdown -> Plate diagnostics and `debug:plate -- <plate.json> --compare <file.md>` for Plate -> Markdown/save-stability diagnostics.
 - `serialized.md` is the save-stable output; `serialized.raw.md` is the raw Plate serializer output for debugging serializer noise.
 
+## Conversion Fix Verification Rule
+- When fixing Markdown/Plate conversion or save-stability bugs, prove that the fix is actually applied through the same production path used by the extension, not through an isolated helper or expectation-only test.
+- Always cover both levels:
+  - a minimal regression test that reproduces the exact symptom;
+  - a full-file roundtrip/debug run that applies the real edit, removes only the intentionally inserted/changed fragment, and diffs the remaining document against the original.
+- Treat serializer noise as a first-class failure: emphasis marker swaps (`*` vs `_`), thematic break swaps (`---` vs `***`), escaped placeholders (`<...>` vs `\<...>`), table whitespace, `<br>` normalization, and inserted blank lines can break save stability even when rendered content looks unchanged.
+- In reconcile logic, compare semantic equality separately from source preservation: use semantic matching to identify unchanged lines, but write back the original line for unchanged content and never apply Markdown formatting preservation inside fenced code blocks.
+- If a fix seems correct but the user still reproduces the issue, inspect the raw serializer output and the save-stable output side by side; the bug is often in the gap between parsed Plate state, raw serialization, and host-side reconcile.
+
 ## AI Editing Behavior (Important)
 - For rewrite actions, send markdown context, not JSON blob.
 - Context must include:
