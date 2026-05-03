@@ -2,7 +2,7 @@
   "name": "maden",
   "displayName": "Maden - editor for .md files, Skills, Agents in Notion style",
   "description": "Notion-like Markdown editor for VS Code",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": true,
   "publisher": "alialek",
   "icon": "icon.png",
